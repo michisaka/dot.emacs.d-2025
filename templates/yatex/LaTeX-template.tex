@@ -1,0 +1,370 @@
+\documentclass[draft]{jlreq} %最終段階でdraftを外す
+% \documentclass[draft, head_space=2cm, foot_space=2cm, gutter=1cm, fore-edge=1cm]{jlreq} %余白少なめ
+\usepackage{enumitem}
+\usepackage{amssymb}
+\usepackage{pifont}
+\usepackage{luatexja-ruby}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{luacolor}
+\usepackage{lua-ul}
+\usepackage{tabularray}
+\jlreqsetup{abstract_with_maketitle=true}
+\UseTblrLibrary{booktabs}
+\UseTblrLibrary{diagbox}
+\usepackage{tcolorbox}
+\usepackage[colorlinks=true,allcolors=blue,
+  bookmarks=true,bookmarksnumbered=true,
+  pdftitle={LaTeX-template.tex},
+  pdfauthor={著者;共著者},
+  pdfkeywords={LaTeX;テンプレート},
+  pdflang=ja_JP
+]{hyperref}
+% \usepackage[hidelinks=true]{hyperref} %印刷版はこっち
+% \pagestyle{empty} %ページ番号が不要な場合
+
+\title{\LaTeX-template.tex}
+\author{著者\thanks{所属・メールアドレス} \\所属 \and 共著者 \\共著者所属}
+\date{日付 デフォルトは \textbackslash today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+ テンプレートファイル。 新規ファイルをYaTeX-modeで開いたときに読み込まれる。
+
+ 手持ちの資料から普段使いそうな機能・記述を集めた。
+
+ このファイルの断片を再利用することで、都度資料にあたることなく標準的な文章を作成する際の手間を低減したい。
+\end{abstract}
+
+%#BEGIN
+% YaTeXの部分編集  BEGINとENDの間にカーソルをおいて C-c C-t r で BEGIN ENDの間だけがタイプセットされる
+
+ここから書き始める
+
+%#END
+
+\selectcolormodel{cmyk} %xcolorのusepacege時に指定すると別パッケージの衝突する
+
+\section{ドキュメントクラス}
+
+texdocコマンドでオンラインでマニュアルが読める。
+
+\begin{table}[h]
+ \centering
+ \caption{jlreqドキュメントクラスのオプション}
+ \label{tbl:jlreq options}
+ \SetTblrInner{rowsep=0pt}
+ \begin{tblr}{l||X} \toprule
+  項目 & 内容 \\ \midrule
+  draft & ドラフト(ページからはみ出た箇所に黒枠が表示される) \\ 
+  twocolumn & 2段組 \\
+  tate & 縦書き \\ 
+  landscape & 横置き \\
+  用途 & report, book \\
+  paper=b5j & 用紙サイズの指定 \\
+  fontsize=10.5pt & フォントサイズの指定 \\
+  余白 & head\_space=2cm, foot\_space=2cm, gutter=1cm, fore-edge=1cm \\
+  % head\_space=2cm & 上部余白 \\
+  % foot\_space=2cm & 下部余白 \\
+  % gutter=1cm & ノド余白（左とじの場合は左側の余白、右とじの場合は右側の余白）\\
+  % fore-edge=1cm &  小口余白（ノドとは逆側の余白）\\
+  titlepage & タイトルと概要をそれぞれ別ページに \\ \bottomrule
+ \end{tblr}
+\end{table}
+
+
+\section{文章構造}
+
+\verb|\part{}| \verb|\chapter{}| \verb|\section{}| \verb|\subsection{}| で指定する。それぞれ * をつけると、目次に記載されない。chapterはドキュメントクラスのオプションで book,report を指定したときのみ。
+
+\begin{itemize}
+ \item \verb|\frontmatter{}| 以降を前付とする。ページ番号が i, ii, iii になって章番号がつかない。
+ \item \verb|\mainmatter{}| frontmatterの終了。章番号 ページ番号が通常通りになる。
+ \item \verb|\appendix{}| 以降を付録とする。章番号が 付録 A, 付録 Bになる。
+ \item \verb|\backmatter{}| 以降を後付とする。章番号がつかない。ページ番号はそのまま。
+\end{itemize}
+
+\textbackslash tableofcontents で目次を作ることができる
+
+
+\section{箇条書き}
+
+以下の設定を行う。
+\begin{itemize}
+ \item \verb|\usepackage{enumitem}|
+ \item \verb|\usepackage{amssymb}| チェックボックス
+ \item \verb|\usepackage{pifont}| チェックボックス
+\end{itemize}
+
+\subsection{箇条書き}
+\begin{itemize}
+ \item \verb|\begin{itemize}| で箇条書き
+ \item[★] 項目記号の変更
+\end{itemize}
+
+\subsection{番号付き箇条書き}
+\begin{enumerate}
+ \item \verb|\begin{enumerate}| で番号付きの箇条書き
+ \item[1a.] 項目番号の変更
+\end{enumerate}
+
+\subsection{定義リスト}
+\begin{description}[labelwidth=10\zw,leftmargin=10\zw]
+ \item[定義リスト] \verb|\begin{description}| で定義リスト
+ \item[見出し] enumitemパッケージを使い labelwidhth,leftmarginを設定すると見出しの幅を設定できる。
+ \item[とっても長い見出し] 自動で一番長い見出しに揃えてくれたりはしない
+\end{description}
+
+\begin{description}[style=nextline]
+ \item[定義リスト] \verb|\begin{description}[style=nextline]| で定義が次行になる定義リスト
+ \item[見出し] 見出しと定義を別行にする場合 \verb|\mbox{}\\|を入れたりしなくていい
+\end{description}
+
+\subsection{チェックボックス}
+
+% 以下はプリアンブルに書いておいたほうが良さそう
+\newlist{todolist}{itemize}{2}
+\setlist[todolist]{label=$\square$, labelsep=3.5pt}
+\newcommand{\cmark}{\ding{51}}%
+\newcommand{\xmark}{\ding{55}}%
+\newcommand{\done}{\rlap{$\square$}{\raisebox{2pt}{\large\hspace{1pt}\cmark}}\hspace{-2.5pt}}
+\newcommand{\wontfix}{\rlap{$\square$}{\large\hspace{1pt}\xmark}}
+
+\begin{itemize}
+  \item Immediate plan of action.
+  \begin{todolist}
+  \item[\done] Frame the problem
+  \item Write solution
+  \item[\wontfix] profit
+  \end{todolist}
+\end{itemize}
+
+\section{位置揃え}
+
+\begin{flushright}
+ 右寄せ
+\end{flushright}
+
+\begin{flushleft}
+ 左寄せ
+\end{flushleft}
+
+\begin{center}
+ 中央寄せ
+\end{center}
+
+\section{文字の装飾}
+
+以下の設定を行う。
+\begin{itemize}
+ \item \verb|\usepackage{graphicx}| \verb|\scalebox|, \verb|\resizebox| に必要
+ \item \verb|\usepackage[dvipsnames]{xcolor}| 文字の色付けに必要
+ \item \verb|\usepackage{luacolor}| xcolor,lua-ulと合わせてハイライトに必要(箇条書きの順番で記述する)
+ \item \verb|\usepackage{lua-ul}| アンダーラインに必要
+\end{itemize}
+
+文字の大きさ。
+
+\verb|{\Huge}| \verb|{\huge}| \verb|{\LARGE}| \verb|{\Large}| \verb|{\large}| から\
+\verb|{\normalsize}| \verb|{\small}| \verb|{\footnotesize}| \verb|{\scriptsize}| \verb|{\tiny}| まで。
+
+\verb|\scalebox{倍率}[縦の倍率]{文字列}| で文字列の\scalebox{2}[1]{拡大}・\scalebox{1}[0.5]{縮小}する。
+
+\verb|\resizebox{幅}{高さ}{文字列}| で文字列を指定したサイズに\resizebox{3cm}{!}{拡大縮小}する。幅あるいは高さに ! を指定すると比率を合わせる。\verb|\height|, \verb|\height|で元の大きさを指定する。
+
+\verb|\emph{...}|で\emph{強調}。
+
+グレースケールで\textcolor[gray]{0.7}{文字色}を指定。カラーの場合はgrayの代わりに
+\textcolor[cmyk]{0.75,0,0.65,0}{cmyk},
+\textcolor[rgb]{1.0,0.6,0.4}{rgb},
+\textcolor[HTML]{25A16B}{HTML}を指定。xcolorをdvipsnamesオプションをつけると名前で指定できる色が増える。
+
+\fbox{囲み文字}と\framebox[10em]{囲み文字}。
+\colorbox[gray]{0.8}{灰色背景}と\fcolorbox[gray]{0}{0.8}{黒枠、灰色背景}。
+
+\underLine{アンダーライン}と\strikeThrough{打ち消し線}と\highLight[yellow]{ハイライト}。
+
+
+
+\section{引用・入力どおりの出力}
+
+\verb|\begin{quotation}|
+\begin{quotation}
+ 引用文 こっちは行頭にスペースが入る
+\end{quotation}
+
+\verb|\begin{quote}|
+\begin{quote}
+ 引用文 こっちは行頭にスペースが入らない
+\end{quote}
+
+\verb|\begin{verbatim}|
+\begin{verbatim}
+書いたまま出力 { とか }
+\end{verbatim}
+
+\verb|\begin{verbatim*}|
+\begin{verbatim*}
+verbatim*にすると 半角スペース も表示される
+\end{verbatim*}
+
+\verb*/\verb*|という書き方も  できる|/
+
+\section{図}
+
+以下の設定を行う。
+\begin{itemize}
+ \item \verb|\usepackage{graphicx}|
+ \item \verb|\usepackage{subcaption}| 関連する図表に共通のキャプションをつける
+\end{itemize}
+
+\verb|\includegraphics[オプション]{ファイル名}| を使う。
+
+\begin{table}[h]
+ \centering
+ \caption{includegraphicsのオプション}
+ \label{tbl: includegraphics option}
+ \SetTblrInner{rowsep=0pt}
+ \begin{tblr}{l||X} \toprule
+  項目 & 内容 \\ \midrule
+  width=10cm & 画像の幅 \\ 
+  height=5cm & 画像の高さ \\
+  keepaspectratio & 縦横比を維持する \\ 
+  scale=0.8 & 倍率 \\
+  draft & 枠とファイル名のみ表示 \\
+  paper=b5j & 用紙サイズの指定 \\
+  fontsize=10.5pt & フォントサイズの指定 \\
+  titlepage & タイトルと概要をそれぞれ別ページに \\ \bottomrule
+ \end{tblr}
+\end{table}
+
+\begin{figure}[h]
+ \centering
+ \begin{minipage}{0.4\columnwidth}
+  \centering
+  \includegraphics[width=2cm]{sample.eps}
+  \caption{minipageで並べるパターン 左}
+  \label{fig: left}
+ \end{minipage}
+ \begin{minipage}{0.4\columnwidth}
+  \centering
+  \includegraphics[width=2cm]{sample.eps}
+  \caption{minipageで並べるパターン 右}
+  \label{fig: right}
+ \end{minipage}
+\end{figure}
+
+\begin{figure}[h]
+ \centering
+ \begin{subfigure}{0.4\columnwidth}
+  \centering
+  \includegraphics[width=2cm]{sample.eps}
+  \caption{左}
+  \label{fig: sub-left}
+ \end{subfigure}
+ \begin{subfigure}{0.4\columnwidth}
+  \centering
+  \includegraphics[width=2cm]{sample.eps}
+  \caption{右}
+  \label{fig: sub-right}
+ \end{subfigure}
+ \caption{subcaptionで並べるパターン}
+ \label{fig: left-right}
+\end{figure}
+
+\clearpage{}
+
+\section{表組み}
+
+以下の設定を行う。
+\begin{itemize}
+ \item \verb|\usepackage{tabularray}|
+ \item \verb|\UseTblrLibrary{booktabs}| \verb|\toprule|, \verb|\midrule|, \verb|\bottomrule| に必要
+ \item \verb|\UseTblrLibrary{diagbox}| \verb|\diagbox{}{}| に必要
+ \item \verb|\usepackage{xcolor}| セルの色付けに必要
+\end{itemize}
+
+\begin{table}[h]
+ \centering
+ \caption{テーブルのサンプル}
+ \label{tbl:table sample}
+ \SetTblrInner{rowsep=0pt,row{odd}={bg=gray9},row{1}={bg=gray7}}
+ \begin{tblr}{|c|l|l|X|} \hline
+  a & a & a & a \\ \hline
+  a & a & a & a \\ \hline
+  a & a & a & a \\ \hline
+  a & a & a & a \\ \hline
+  a & a & a & a \\ \hline
+ \end{tblr}
+\end{table}
+
+\begin{table}[h]
+ \centering
+ \caption{セルの結合のサンプル}
+ \label{tbl:multi cell sample}
+ \SetTblrInner{rowsep=0pt}
+ \begin{tblr}{|Q[c,m]|l|r|l|} \hline
+  \diagbox{下}{右} & b & c & d  \\ \cline{1-2}
+  \SetCell[r=2]{}セルの結合 & \SetCell[c=2]{c,m} セルの結合  & & {複数行のセル\\ 複数行の\\ セル} \\ \hline
+   & b & \SetCell{c}c & \SetCell{bg=olive}d  \\ \hline
+ \end{tblr}
+\end{table}
+
+\section{枠囲み}
+
+以下の設定を行う。
+\begin{itemize}
+ \item \verb|\usepackage{tcolorbox}|
+\end{itemize}
+
+\begin{tcolorbox}[colframe=black!50,colback=white, colbacktitle=black!50,coltitle=white,
+fonttitle=\bfseries\sffamily,title=枠タイトル]
+内容
+\end{tcolorbox}
+
+
+
+\section{参照とリンク}
+
+表:\ref{tbl:table sample}(\pageref{tbl:table sample}ページ) とか
+\hyperref[tbl:table sample]{テーブルのサンプル} とか。
+
+リンク \url{http://yahoo.co.jp} とか \href{http://yahoo.co.jp}{yahoo.co.jp} とか。
+
+
+\section{脚注・ルビ・圏点}
+
+以下の設定を行う。
+\begin{itemize}
+ \item \verb|\usepackage{luatexja-ruby}| ルビ・圏点に必要
+\end{itemize}
+
+ここに注釈\footnote{脚注}をつけます。
+
+欄外への書き込みはこんな感じ。\marginpar{欄外への書き込み}
+
+ルビは \ruby{中百舌鳥}{なかもず} あるいは文字ごとに割り付ける場合\ruby{喜|連|瓜|破}{き|れ|うり|わり}とする。
+
+\kenten{圏点}をつけることもできる。
+
+\section{空白・改ページ}
+
+\verb|\newpage|で改ページを発生させる。\verb|\clearpage|でその時点で出力できていない図表をすべて書き出して改ページする。
+
+\verb|\ | で空白一つ。\verb|~|は改行されない空白一つ。
+
+空白を作る \hspace{5 \zw} ことができる。 * をつけると行頭・行末にも作れる。
+
+空白を作る \vspace{5 \baselineskip} ことができる。 * をつけるとページ頭・ページ末にも作れる。
+
+\verb|\hfill| \verb|\vfill| で水平・垂直方向に均等に空白を作る。
+
+水平線は2種類。\hrulefill 実線と
+
+\dotfill 破線。 \dotfill
+
+\end{document}

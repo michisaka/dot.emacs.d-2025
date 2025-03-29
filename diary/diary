@@ -1,0 +1,8 @@
+#include "diary.schedule"
+#include "diary.work_schedule"
+#include "diary.solar_terms"
+;; #include "diary.japan_holidays"
+
+%%(org-diary :scheduled :timestamp :deadline)
+%%(diary-sunrise-sunset)
+%%(diary-lunar-phases)

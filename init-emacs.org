@@ -1,0 +1,1958 @@
+#+TITLE: emacs init.el 2025
+
+* セットアップ時にやること
+
+- infoファイルの設置とinstall-info --dir-file=dir の実行
+- node-iconsがシステムに存在しなければ M-x nerd-icons-install-fonts でインストール
+- elisp 配下に以下を設置
+  - tempbuf.el
+  - lookup(個別にビルドしたもの)
+- tree sitter 文法ファイルのダウンロード
+- M-x lookup を実行して使用する辞書の選択を行う
+- M-x desktop-save を実行してデスクトップファイルを保存しておく
+- パッケージの改変
+  - py-isort の py-isort-before-save がチェックしているモードを python-ts-mode に変える
+  - auto-virtualenvwrapper の仮想環境の検知順の .venv の順位を .python-version より上に上げる
+
+- 必要な外部プログラム
+  - mozc_emacs_helper (自前でビルドできるようにしたい)
+  - emacs-lsp-booster (リポジトリから取得したもの)
+  - eblook (個別にビルドしたもの)
+  - libeb
+  - ripgrep
+  - fd
+  - tree-sitter
+  - pandoc
+  - LaTeXタイプセット環境
+  - git
+  - pass
+  - tmux
+
+* org babel tangle
+
+.orgファイルからコードブロック(#+begin_srcと#+end_srcの間)を抽出して .el ファイルを作る仕組み。
+更に、org-babel-load-fileで抽出結果をそのままロードすることもできる。
+
+コードブロック(に限らず structure-template)は C-c C-, で作成できる。
+コードブロックは C-c ' でコードブロックのみをそれぞれのメジャーモードで開いて編集できる。
+
+以下の内容を init.el に記述して、残りの init.el 相当の内容をinit-emacs.org(このファイル)に書いて起動時にinit.elから読み込ませる。
+(元ファイル名の .el ファイルを作成するので、このファイルのファイル名を init.org とすると循環してエラーになる)
+
+起動に失敗すると straight-use-package のビルドが完了したことにならないようで、毎回 build orgが走ってしまう。
+一旦(require 'org)まで済ませてしまったほうが良い。
+
+:tangle no を指定しているのでこのコードブロックはエクスポートされない。
+#+begin_src emacs-lisp :tangle no
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name
+        "straight/repos/straight.el/bootstrap.el"
+        (or (bound-and-true-p straight-base-dir)
+            user-emacs-directory)))
+      (bootstrap-version 7))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
+
+(straight-use-package 'org)
+(require 'org)
+
+(org-babel-load-file (locate-user-emacs-file "init-emacs.org"))
+;(load (locate-user-emacs-file "init-emacs.el"))
+#+end_src
+
+
+* user-emacs-directoryの再設定
+
+emacs 29 より --init-directoryオプションが追加されたので user-emacs-directory を再定義しなくてよくなった。
+(なので、このコードブロックも :tangle no を設定した)
+
+#+begin_src emacs-lisp :tangle no
+;; user-emacs-directoryの再設定
+;; emacs -q -l ~/path/init.el で起動できるようにする
+(eval-and-compile
+  (when (or load-file-name byte-compile-current-file)
+    (setq user-emacs-directory
+          (expand-file-name
+           (file-name-directory (or load-file-name byte-compile-current-file))))))
+#+end_src
+
+
+* パッケージ管理
+
+** straight.el
+
+straight.el はアーカイブからtarballをダウンロードするのではなく、オリジナルのリポジトリをクローンしてローカルでパッケージのビルドを行う。
+アーカイブに含まれていないパッケージもレシピと呼ばれる記法でリポジトリを指定すればそこからクローンする。
+
+クローンしたリポジトリに手を加えられたのを検知したらそのタイミングで再度ビルドが行われる。
+
+以下のコマンドでパッケージを更新できる。バックエンドでgit(や他のバージョンコントロール)が動いている。権限があればpushも行える。
+
+- M-x straight-pull-package
+- M-x straight-pull-package-and-deps
+- M-x straight-pull-all
+
+M-x straight-freeze-versions を実行するとインストールされているパッケージのバージョンを固定することが出来る。
+固定されたバージョン情報は ~/.emacs.d/straight/versions に記録される。M-x straight-thaw-versions を実行すると固定されたバージョンが再現される。
+
+M-x straight-visit-package-website で パッケージのサイトを開くことが出来る。
+
+** use-package
+
+use-package には機能名(require, provide の引数)を指定する。一方、straightにはパッケージ名を指定する必要がある。両者が一致しない場合はstraightの引数で指定する。
+
+:defer がセットされているパッケージは、ロードと :config の実行が遅延する。:defer が暗黙的にセットされるのは :command, :auto-load, :bind, :mode, :interpreter, :magic, :magic-fallback, :hook。
+
+空行をいれる箇所も含め、概ね以下の順番で記載する。
+
+- :if, :when, :unless :: 後続の条件に従ってパッケージのロードを制御する。:when は :if のエイリアス
+  :preface自体も制御する場合は use-package 自体を when 等で囲む
+
+- :straight :: straightを用いてパッケージをインストールする。機能名とパッケージ名が異なる場合は引数に指定する
+- :load-path :: 追加の load-path を設定する
+- :defer :: 遅延ロードを行う。use-package が暗黙的に:deferをつけず、パッケージ自体に遅延ロードの仕組みが用意されている場合は :defer を明示的に指定する
+- :demand :: 即時ロードを行う。 :defer を取り消す
+- :after, :requires :: パッケージ間の依存関係を指定する。:afterは依存先のロードまでロードを遅延する。:requiresはその時点で有効になっていなければ実行しない
+
+- :preface :: パッケージのロードとは独立して実行する処理
+
+- :command :: autoload を行うコマンドを指定する
+- :autoload :: autoload を行う関数を指定する
+
+- :init :: パッケージのロードを行いその直後に実行する処理
+
+- :custom, :custom-face :: :configの箇所に setq, set-set-faces を追加する
+
+- :bind :: 指定されたコマンドを autoload に登録し、キーバインドを作成する(キーバインドの作成は :init のタイミングと同じ)
+  - キーとコマンドのconsかそのリストを指定する
+  - コマンドは説明とコマンドのconsを指定することもできる(らしいけどうまくできなかった。できたら lambda のところで使いたい)
+  - キーマップをバインドするための :bind-keymap というバリエーションもある
+  - :map モディファイア をつかって ローカルキーマップの bind を指定することもできる。ただし、パッケージロードされた時点で存在するものに限る。
+  - repeat-mode 用のバインドを :repeat-map を使って指定できる(らしいんだけど、うまく動かせていない)
+- :mode, :interpreter :: auto-mode-alist と interpreter-mode-alist を設定する。対象は暗黙的に:commandに追加される
+- :magic, :magic-fallback :: :modeがファイル名を見るように、ファイルの内容からモードを選択する。:magic-fallbackは検出のタイミングが遅いはず
+- :hook :: add-hook を行う。 -hook のプレフィックスは不要。暗黙的に:commandに追加される
+
+- :config :: パッケージのロード後に行われる。 :config に use-packageをネストさせるのは止める
+
+#+begin_src emacs-lisp
+(straight-use-package 'use-package)
+(require 'use-package)
+#+end_src
+
+
+* ファイルとディレクトリと環境変数
+
+大昔、$HOME が NFS 上にあった頃 $HOME 配下のファイルが同一視されなくて default-directory に "~/" をセットしたような気がする。今回は外して様子を見てみる。
+
+infoディレクトリ配下にinfoファイルを追加した場合、install-info --dir-file=dir "INFOファイル" が必要。
+
+#+begin_src emacs-lisp
+;; ディレクトリ
+;; (setq default-directory "~/")
+;; (setq command-line-default-directory "~/")
+(setq directory-abbrev-alist '(("^/export/home" . "/home")
+                               ("^/usr/home" . "/home")))
+(setq custom-file (locate-user-emacs-file "custom.el"))
+(setq backup-directory-alist (list
+                              (cons ".*"  (locate-user-emacs-file "backup"))
+                              (cons tramp-file-name-regexp nil)))
+(setq auto-save-file-name-transforms (list (list ".*" (locate-user-emacs-file "backup/") t)))
+(add-to-list 'Info-directory-list (locate-user-emacs-file "info"))
+
+;; ファイル
+(setq load-prefer-newer t)          ;バイトコンパイルが古い場合元のファイルを読む
+(setq create-lockfiles nil)         ;ロックファイルを作らない
+(setq find-file-visit-truename nil) ;シンボリックファイルを辿ったファイル名で訪問する
+(setq uniquify-buffer-name-style 'post-forward-angle-brackets)  ;同一ファイル名を区別する
+(global-auto-revert-mode t)         ;外部プログラムで編集されたバッファを同期する
+#+end_src
+
+以下でPATHが取得される。他に必要な環境変数があればリスト exec-path-from-shell-variables に追加する。
+
+起動時に以下の警告が出る。そんなに気にはならないけど .zshrc は整理する必要がありそう。
+#+begin_example
+Warning: exec-path-from-shell execution took 868ms. See the README for tips on reducing this.
+#+end_example
+
+#+begin_src emacs-lisp
+(use-package exec-path-from-shell
+  :straight t
+
+  :config
+  (exec-path-from-shell-initialize))
+#+end_src
+
+
+* その他
+
+yes-or-no-p を (x-popup-dialog t '(prompt ("Yes". t) ("No". nil))) に置き換えてみたい。
+
+#+begin_src emacs-lisp
+;; スクロール
+(setq scroll-conservatively 1)                                  ;上下端からのスクロール量
+(setq next-screen-context-lines  1)                             ;1画面スクロール時に残す前頁の行数
+(setq scroll-preserve-screen-position t)                        ;スクロール時にカーソル位置を維持する
+(setq mouse-wheel-scroll-amount '(5 ((shift) . 1) ((control)))) ;ホイールスクロール時の移動量
+(setq mouse-wheel-progressive-speed nil)                        ;ホイールスクロールを加速しない
+
+;; undo と redo を分離する
+(bind-key "C-/" `undo-only)
+(bind-key "C-?" `undo-redo)
+
+;; 未分類
+(setq-default fill-column 119)
+(setq-default tab-width 4)
+(setq-default indent-tabs-mode nil)
+(repeat-mode)                                   ;特定のコマンド実行後に単キーでコマンドを継続できる
+(global-set-key (kbd "C-x j") #'duplicate-dwim) ;行を複製する
+;; (delete-selection-mode t)                       ;選択状態で入力したときに選択範囲を消す 危険なので有効にはしない
+(setq select-enable-clipboard t)                ;クリップボードを利用する
+(defalias 'y-or-n-p 'yes-or-no-p)               ;y or n の入力を yes[RET] or no[RET]に置き換える
+(setq confirm-kill-emacs 'yes-or-no-p)          ;emacs終了時に確認を行う
+#+end_src
+
+
+* 履歴
+
+#+begin_src emacs-lisp
+(setq history-delete-duplicates t)     ;重複するミニバッファヒストリを削除する
+(savehist-mode t)                      ;ミニバッファの履歴を保存する
+(save-place-mode +1)                   ;カーソル位置を保存する
+
+(use-package recentf-ext
+  :straight t
+
+  :custom
+  (recentf-auto-save-timer
+        (run-with-idle-timer 60 t 'recentf-save-list)) ;; 一分以上バッファを開いていたら履歴に登録
+
+  :config
+  (add-to-list 'recentf-exclude "~/task/.+org")
+  (add-to-list 'recentf-exclude "~/.mime-example") ;.mime-example を見ているのは誰?
+  (add-to-list 'recentf-exclude "~/.emacs.d/diary/diary")
+  (add-to-list 'recentf-exclude "~/.password-store")
+  (recentf-mode))
+
+(use-package desktop ;デスクトップの状態を保存する
+  :init
+  (desktop-save-mode t))
+#+end_src
+
+
+* 外観・テーマ
+
+スクロールバー、メニューバー、ツールバーの非表示はearly-init.elに移動しました。
+
+気になっている パッケージ
+- doom-modeline (minions と互換性がある)
+
+nerd-icons のインストールが必要。M-x nerd-icons-install-fonts でインストールすることもできる。
+
+#+begin_src emacs-lisp
+(setq inhibit-startup-screen 0)        ;起動画面を静かにする
+(setq ring-bell-function 'ignore)      ;警告音を止める
+(setq use-dialog-box nil)              ;ダイアログボックスを使用しない
+(line-number-mode t)                   ;モードラインに行番号を表示する
+(column-number-mode t)                 ;モードラインに桁番号を表示する
+
+;; アイコンフォント
+(use-package nerd-icons
+  :straight t)
+
+;; ツールチップライブラリ
+(use-package posframe
+  :if window-system
+
+  :straight t
+
+  :custom
+  (posframe-mouse-banish t)) ;posframe使用時にマウスカーソルを退避する。wmによっては不要
+
+;; テーマ
+(use-package solarized-theme
+  :straight t
+
+  :custom
+  (solarized-use-variable-pitch nil)
+  ;; (solarized-high-contrast-mode-line t)
+  (solarized-scale-org-headlines nil)
+  :custom-face
+  (outline-1 ((t (:foreground "SkyBlue3"))))
+  (org-level-1 ((t (:foreground "SkyBlue3")))) ;org-level-1 は outline-1を継承しているっぽいんだけど、outline-1だけでは変わらなかった。
+  (tab-bar-tab ((t (:background "#073642"))))
+  (tab-bar-tab-inactive ((t (:foreground "#073642" :background "#002b36"))))
+
+  :config
+  (load-theme 'solarized-dark t))
+  ;; (load-theme 'solarized-light t))
+
+;; マイナーモードの表示をモードラインから消す
+(use-package minions
+  :straight t
+
+  :init
+  (minions-mode +1)
+
+  :custom
+  (minions-prominent-modes '(flymake-mode)))
+#+end_src
+
+
+* 強調表示
+
+#+begin_src emacs-lisp
+(setq show-paren-when-point-inside-paren t) ;カッコの直後でも強調表示
+(global-hl-line-mode t)                     ;現在行を強調表示
+(show-paren-mode t)                         ;対応するカッコを強調表示
+(transient-mark-mode t)                     ;選択範囲を強調表示
+#+end_src
+
+** whitespace-mode
+
+whitespace-styleで指定できる強調表示する項目は以下の通り。
+
+| face                    | faceを用いて描画する                                                |
+| trailing                | 行末の空白                                                          |
+| tabs                    | タブ                                                                |
+| spaces                  | visualize SPACEs and HARD SPACEs via faces.                         |
+| lines                   | whitespace-line-columnより長い行                                    |
+| lines-tail              | whitespace-line-columnより長い行(超過分)                            |
+| lines-char              | whitespace-line-columnより長い行(超過ポイント)                      |
+| newline                 | visualize NEWLINEs via faces.                                       |
+| missing-newline-at-eof  | ファイル末尾の改行不足                                              |
+| empty                   | ファイル先頭・末尾の空行                                            |
+| indentation::tab        | 行頭のtab-width以上のスペース                                       |
+| indentation::space      | 行頭のTAB                                                           |
+| indentation             | 行頭のTABもしくはtab-width以上のスペース(indent-tabs-modによる)     |
+| big-indent              | 大量のインデント                                                    |
+| space-after-tab::tab    | TABに続くtab-width以上のスペース                                    |
+| space-after-tab::space  | 以降にtab-width以上のスペースが続くTAB                              |
+| space-after-tab         | TABに続くtab-width以上のスペースもしくはTAB(indent-tabs-modeによる) |
+| space-before-tab::tab   | TABの前のスペース                                                   |
+| space-before-tab::space | スペースに継続するTAB                                               |
+| space-before-tab        | TABの前のスペースもしくはTAB(indent-tabs-modeによる)                |
+| space-mark              | 空白を記号で描画                                                    |
+| tab-mark                | タブを記号で描画                                                    |
+| newline-mark            | 改行を記号で描画                                                    |
+
+
+Faceは様子を見ながら設定。ちなみに以前の設定は以下の通り。
+
+- (whitespace-space ((t (:foreground "red" :background "gray33" :underline t))))
+- (whitespace-hspace ((t (:foreground "red" :background "gray33" :underline t))))
+- (whitespace-tab ((t (:foreground "cyan" :underline (:style wave)))))
+- (whitespace-indentation ((t (:foreground "cyan" :background "DarkRed" :underline (:style wave)))))
+- (whitespace-space-before-tab ((t (:foreground "cyan" :background "plum" :underline (:style wave)))))
+- (whitespace-space-after-tab  ((t (:foreground "cyan" :background "plum" :underline (:style wave)))))
+- (whitespace-trailing ((t (:background "DarkRed"))))
+- (whitespace-empty ((t (:background "DarkSlateGrey"))))
+- (whitespace-missing-newline-at-eof ((t (:background "yellow"))))
+
+indent-tabs-mode の時にこそ indentation を当ててほしいんだけど。。。。。
+
+#+begin_src emacs-lisp
+(use-package whitespace
+  :demand t
+
+  :custom
+  (whitespace-style '(face trailing tabs spaces newline missing-newline-at-eof empty indentation
+                           space-after-tab::tab space-after-tab::space space-before-tab::tab space-before-tab::space tab-mark newline-mark))
+  (whitespace-space-regexp "\\(\u3000\\)") ;空白の強調表示を全角スペースのみに
+  (whitespace-display-mappings
+   '(
+     ;; (space-mark   ?\     [?\u00B7]     [?.])  ; space - centered dot
+     (space-mark   ?\xA0  [?\u00A4]     [?_])  ; hard space - currency
+     (space-mark   ?\x8A0 [?\x8A4]      [?_])  ; hard space - currency
+     (space-mark   ?\x920 [?\x924]      [?_])  ; hard space - currency
+     (space-mark   ?\xE20 [?\xE24]      [?_])  ; hard space - currency
+     (space-mark   ?\xF20 [?\xF24]      [?_])  ; hard space - currency
+     ;; (space-mark   ?　    [?□]          [?＿]) ; full-width space - square
+     (newline-mark ?\n    [?\xAB ?\n] [?$ ?\n])        ; eol - right quote mark
+     (tab-mark     ?\t    [?\u00BB ?\t] [?\\ ?\t]))) ; tab - left quote mark
+  :custom-face
+  (whitespace-trailing ((t (:background "DarkRed"))))
+  (whitespace-empty ((t (:foreground "DarkSlateGrey"))))
+  (whitespace-hspace ((t (:foreground "red" :background "DarkRed" :underline t))))
+  (whitespace-newline ((t :foreground "gray30")))
+  (whitespace-tab  ((t (:underline (:style wave)))))
+
+  :bind
+  ("<f6> w" . whitespace-mode)
+  :hook
+  ((conf-mode prog-mode text-mode) . whitespace-mode))
+#+end_src
+
+
+* 日本語入力
+
+.Xresourcesに Emacs*useXIM: false も追記。
+
+かな漢のOn/Offをそれぞれ別のキーに割り当てたいけど、キーが足りない。
+
+#+begin_src emacs-lisp
+(require 'ucs-normalize)
+(set-language-environment 'Japanese)
+(set-default-coding-systems 'utf-8-unix)
+(prefer-coding-system 'iso-2022-jp)
+(prefer-coding-system 'japanese-shift-jis)
+(prefer-coding-system 'euc-jp-unix)
+(prefer-coding-system 'utf-8-unix)
+
+(use-package mozc
+  :straight t
+
+  :custom
+  (default-input-method "japanese-mozc")
+  (pgtk-use-im-context-on-new-connection nil) ; 環境が用意しているIMへの接続を行わない
+  (mozc-helper-program-name "mozc_emacs_helper"))
+
+(use-package mozc-cand-posframe
+  :if window-system
+
+  :straight t
+  :after (mozc posframe)
+
+  :custom
+  (mozc-candidate-style  'posframe))
+
+(add-hook 'input-method-activate-hook
+          (lambda() (set-cursor-color "OliveDrab4")))
+
+(add-hook 'input-method-deactivate-hook
+          (lambda() (set-cursor-color "slate gray")))
+#+end_src
+
+
+* 印刷
+
+Wanderlust でメールの印刷ができなかった。Subject:に日本語が入っているとダメっぽい。
+今回できなくなったのか以前からそうだったのかは不明。
+
+#+begin_src emacs-lisp
+(use-package ps-mule
+  :preface
+  (setq ps-multibyte-buffer 'non-latin-printer)
+  (require 'ps-mule)
+
+  :custom
+  (ps-mule-header-string-charsets 'ignore)
+  (ps-multibyte-buffer 'non-latin-printer)
+
+  ;; (ps-lpr-command "/bin/lpr")
+  ;; (ps-printer-name "hogehoge")
+  (ps-lpr-switches '("-Temacs_ps-print"))
+
+  (ps-paper-type 'a4 )
+  (ps-print-color-p t)
+  (ps-landscape-mode nil)
+
+  (ps-font-size '(9 . 10))
+  (ps-left-margin 20)
+  (ps-right-margin 20)
+  (ps-top-margin 20)
+  (ps-bottom-margin 20)
+  (ps-n-up-margin 20)
+
+  (ps-print-header t)
+  (ps-print-footer nil)
+  (ps-n-up-printing 1)
+  (ps-line-number nil)
+
+  (ps-right-header '("/pagenumberstring load" ps-time-stamp-yyyy-mm-dd ps-time-stamp-hh:mm:ss))
+  (ps-header-font-size  '(10 . 12))
+  (ps-header-title-font-size '(12 . 14))
+  (ps-header-font-family 'Helvetica)
+
+  (ps-line-number-font "Times-Italic")
+  (ps-line-number-font-size 6)
+  (ps-line-number-start 1)
+  (ps-line-number-step 1))
+#+end_src
+
+
+* キーバインディング
+
+#+begin_src emacs-lisp
+(setq suggest-key-bindings 5) ;M-xで実行されたコマンドにキーバインドがあればエコーエリアに表示する
+
+(use-package which-key
+  :straight t
+
+  :custom
+  (which-key-separator ":")
+
+  :config
+  (which-key-mode t))
+
+(use-package which-key-posframe
+  :if window-system
+
+  :straight t
+  :after (which-key posframe)
+
+  :custom
+  (which-key-posframe-poshandler 'posframe-poshandler-frame-center)
+
+  :config
+  (which-key-posframe-mode t))
+#+end_src
+
+
+* ウィンドウとバッファ
+
+- フォントの変更
+  - C-x C-M-+ 、 C-x C-M-- で全てのバッファのフォントサイズを変更
+
+- ウィンドウの分割 C-x w 系
+  - These commands split the root window in two, and are bound to 'C-x w 2' and 'C-x w 3', respectively.
+
+- 'M-SPC' is now bound to 'cycle-spacing'
+- M-^ to ‘lift’ the current line to the one above.
+
+- ウィンドウのサイズ
+  - C-x ^, C-x {, C-x } ウィンドウのサイズ変更
+  - C-x + ウィンドウの高さを揃える
+  - C-x - shrink-window-if-larger-than-buffer
+
+#+begin_src emacs-lisp
+(setq split-window-keep-point nil)     ;ウィンドウ分割時にバッファの表示とカーソル位置を維持する
+#+end_src
+
+** tab-bar
+
+#+begin_src emacs-lisp
+(use-package tab-bar
+  :demand t
+
+  :custom
+  (tab-bar-select-tab-modifiers '(meta))
+  (tab-bar-tab-hints t)
+  (tab-bar-format '(tab-bar-format-tabs-groups))
+  (tab-bar-new-tab-choice "*scratch*")
+  (tab-bar-new-tab-to `rightmost)
+  (tab-bar-new-button-show nil)
+  (tab-bar-close-button-show nil)
+  (tab-bar-close-last-tab-choice `delete-frame)
+  (tab-bar-tab-post-change-group-functions 'tab-bar-move-tab-to-group)
+  (tab-bar-tab-post-open-functions 'tab-bar-move-tab-to-group)
+
+  :bind-keymap
+  ("C-z" . tab-prefix-map)
+  :bind
+  (:map tab-prefix-map
+        ("0" . (lambda() (interactive)(tab-bar-select-tab 1)))
+        ("1" . (lambda() (interactive)(tab-bar-select-tab 1)))
+        ("2" . (lambda() (interactive)(tab-bar-select-tab 2)))
+        ("3" . (lambda() (interactive)(tab-bar-select-tab 3)))
+        ("4" . (lambda() (interactive)(tab-bar-select-tab 4)))
+        ("5" . (lambda() (interactive)(tab-bar-select-tab 5)))
+        ("6" . (lambda() (interactive)(tab-bar-select-tab 6)))
+        ("7" . (lambda() (interactive)(tab-bar-select-tab 7)))
+        ("8" . (lambda() (interactive)(tab-bar-select-tab 8)))
+        ("9" . (lambda() (interactive)(tab-bar-select-tab 9)))
+        ("c" . tab-new)
+        ("k" . tab-close)
+        ("l" . tab-bar-select-tab-by-name)
+        ("n" . tab-bar-switch-to-next-tab)
+        ("p" . tab-bar-switch-to-prev-tab)
+        ("h" . tab-bar-history-back)
+        ("j" . tab-bar-history-forward))
+  :hook
+  (after-init-hook . (lambda() (define-key tab-prefix-map "p" 'tab-bar-switch-to-prev-tab))) ;project.elが上書きするため
+
+  :config
+  (tab-bar-mode)
+  (tab-bar-history-mode))
+#+end_src
+
+** ace-window
+
+C-x o の後に ? の押下でサブコマンドコマンドのヒントが表示される。
+
+#+begin_src emacs-lisp
+(use-package ace-window
+  :straight t
+  :after (posframe)
+
+  :custom
+  (aw-scope 'frame)
+  (aw-dispatch-always t) ; ウィンドウが2つでも作動する
+  :custom-face
+  (aw-leading-char-face ((t (:inherit ace-jump-face-foreground :height 3.0))))
+
+  :bind
+  ("C-x o" . ace-window)
+  :hook
+  ((prog-mode text-mode) . ace-window-posframe-mode))
+#+end_src
+
+** tempbuf
+
+手動で取得して elisp/tempbuf.el/ ディレクトリ配下に設置。
+https://www.emacswiki.org/emacs/tempbuf.el
+
+残り続けているものを見つけたら追加する。
+
+#+begin_src emacs-lisp
+(use-package tempbuf
+  :load-path "elisp/tempbuf.el"
+
+  :hook
+  (magit-mode . turn-on-tempbuf-mode)
+  (help-mode . turn-on-tempbuf-mode)
+  ;; (special-mode . turn-on-tempbuf-mode)
+  ;; (embark-collect-mode . turn-on-tempbuf-mode)
+  ;; (grep-mode . turn-on-tempbuf-mode)
+  (diary-mode . turn-on-tempbuf-mode)
+  (diary-fancy-display-mode . turn-on-tempbuf-mode)
+  (dired-mode . turn-on-tempbuf-mode))
+#+end_src
+
+
+* 検索と補完と選択
+
+- 見送ったもの
+  - fido-vertical-mode ミニバッファに縦に候補を並べる選択UI (emacs 同梱, marginaliaかembarkが対応していないっぽいので今回は見送り)
+  - ffap-bindings find-fileを拡張する。今回は C-. embark-act で代替する
+
+#+begin_src emacs-lisp
+(setq read-extended-command-predicate #'command-completion-default-include-p) ;カレントモードには適用されないコマンドはM-xで表示しない
+(setq tab-always-indent 'complete) ;インデントが不要な場所ではTABで補完を開始する
+
+(use-package wgrep ;grepバッファで直接編集できるようにする
+  :straight t
+
+  :custom
+  (wgrep-enable-key "e"))
+#+end_src
+
+** auto-insert
+
+yatex-mode はタイプセットをして確認することがあるのでディレクトリを1階層下げています。
+
+#+begin_src emacs-lisp
+(use-package autoinsert
+  :preface
+  (auto-insert-mode t)
+
+  :custom
+  (auto-insert-directory (locate-user-emacs-file "templates"))
+  (auto-insert-alist
+      (append '((("-slide\\.tex$" . "Beamer テンプレート")."yatex/beamer-template.tex")
+                (("\\.tex$" . "YaTeX テンプレート" ) . "yatex/LaTeX-template.tex")
+                (("\\.html$" . "html テンプレート" ) . "template.html")
+                (("\\.css$" . "CSS テンプレート" ) . "template.css")
+               ) auto-insert-alist)))
+#+end_src
+
+** TempEl
+
+tempel-path 以外は一旦ドキュメントのままのインストール。
+  - M-+, M-* は使ってみて利用頻度が低ければ外す
+  - M-* (tempel-insertはテンプレートの一覧からの選択なので、なくても良さそう)
+  - M-+ はテンプレートがうろ覚えのときに使うかもしれない(もしくは補完を tempel-expand から tempel-complete に変えると TAB で補完が効くからいいかもしれない)
+  - C-x ' は M-+ があるから使わなくて良さそう
+- complation-at-point の設定はフックでなくて一律で適用できるか試してみたい
+
+#+begin_src emacs-lisp
+(use-package tempel
+  :straight t
+
+  :bind (("M-+" . tempel-complete) ;; Alternative tempel-expand
+         ("M-*" . tempel-insert))
+
+  :init
+  (defun tempel-setup-capf ()
+    ;; Add the Tempel Capf to `completion-at-point-functions'.
+    ;; `tempel-expand' only triggers on exact matches. Alternatively use
+    ;; `tempel-complete' if you want to see all matches, but then you
+    ;; should also configure `tempel-trigger-prefix', such that Tempel
+    ;; does not trigger too often when you don't expect it. NOTE: We add
+    ;; `tempel-expand' *before* the main programming mode Capf, such
+    ;; that it will be tried first.
+    (setq-local completion-at-point-functions
+                (cons #'tempel-expand
+                      completion-at-point-functions)))
+
+  (add-hook 'conf-mode-hook 'tempel-setup-capf)
+  (add-hook 'prog-mode-hook 'tempel-setup-capf)
+  (add-hook 'text-mode-hook 'tempel-setup-capf)
+
+  ;; Require trigger prefix before template name when completing.
+  ;; :custom
+  ;; (tempel-trigger-prefix "<")
+  :custom
+  (tempel-path (locate-user-emacs-file "templates/TempEl/*.eld")))
+#+end_src
+
+** Vertico
+
+#+begin_src emacs-lisp
+(use-package vertico
+  :straight t
+
+  :preface
+  ;; Emacs bug#76028: Add prompt indicator to `completing-read-multiple'.
+  ;; We display [CRM<separator>], e.g., [CRM,] if the separator is a comma.
+  (defun crm-indicator (args)
+    (cons (format "[CRM%s] %s"
+                  (replace-regexp-in-string
+                   "\\`\\[.*?]\\*\\|\\[.*?]\\*\\'" ""
+                   crm-separator)
+                  (car args))
+          (cdr args)))
+  (advice-add #'completing-read-multiple :filter-args #'crm-indicator)
+
+  :init
+  (vertico-mode)
+
+  :custom
+  (vertico-scroll-margin 0) ;; Different scroll margin
+  (vertico-count 15) ;; Show more candidates
+  ;; (vertico-resize t) ;; Grow and shrink the Vertico minibuffer
+  (vertico-cycle t) ;; Enable cycling for `vertico-next/previous'
+  (enable-recursive-minibuffers t)
+
+  :bind
+  (:map vertico-map
+        ;; ("C-d" . vertico-directory-delete-char)
+        ("C-l" . vertico-directory-up)))
+
+(use-package nerd-icons-completion
+  :straight t
+  :after (nerd-icons marginalia)
+
+  :config
+  (nerd-icons-completion-mode)
+  (add-hook 'marginalia-mode-hook #'nerd-icons-completion-marginalia-setup))
+#+end_src
+
+** orderless, marginalia
+
+#+begin_src emacs-lisp
+(use-package orderless ;先頭一致以外での補完を行えるようにする
+  :straight t
+
+  :custom
+  (completion-styles '(orderless basic))
+  (completion-category-overrides '((file (styles basic partial-completion)))))
+;; :config ;; fido-vertical-mode と共用する場合のいくつかの回避策
+;; (keymap-unset minibuffer-local-completion-map "SPC")
+;; (add-hook 'minibuffer-setup-hook
+;;           (lambda ()
+;;             (setq-local completion-styles '(orderless partial-completion))) t))
+
+(use-package marginalia ; 補完候補に注釈をつける
+  :straight t
+
+  :init
+  (marginalia-mode)
+
+  :bind (:map minibuffer-local-map
+              ("M-A" . marginalia-cycle))) ;注釈の詳細度を変更する
+#+end_src
+
+** corfu, cape
+
+自動で開始しない場合は C-M-i か TAB で起動する。TABもしくはC-n C-p で選択して RET で決定する。
+途中で M-SPC を入力すると Orderless 補完に入る
+M-hを入力するとドキュメントを表示する。M-gを入力するとソースを表示できる
+
+| バインディング/リマップ  |           | Corfuのコマンド          |
+|--------------------------+-----------+--------------------------|
+| move-beginning-of-line   | C-a       | corfu-prompt-beginning   |
+| move-end-of-line         | C-e       | corfu-prompt-end         |
+| beginning-of-buffer      | M-<       | corfu-first              |
+| end-of-buffer            | M->       | corfu-last               |
+| scroll-down-command      | M-v       | corfu-scroll-down        |
+| scroll-up-command        | C-v       | corfu-scroll-up          |
+| next-line、down、M-n     | C-n       | corfu-next               |
+| previous-line、up、M-p   | C-p       | corfu-previous           |
+| completion-at-point、TAB |           | corfu-complete           |
+| M-TAB                    |           | corfu-expand             |
+| RET                      |           | corfu-insert             |
+| M-g                      |           | corfu-info-location      |
+| M-h                      |           | corfu-info-documentation |
+| M-SPC                    |           | corfu-insert-separator   |
+| C-g                      |           | corfu-quit               |
+| keyboard-escape-quit     | M-ESC ESC | corfu-reset              |
+
+マッチが一つになったときの挙動は使ってみて調整したい。
+表示を残しておいて ドキュメントの参照ができたらいいかも。 -> あるいはドキュメントの参照は別に設定が必要なのかもしれない。
+中間までマッチしたものを確定せずに入力する方法ってなかったかな。たとえば、ディレクトリを進んでいく感じ。
+
+cape の cape-dabbrev は調整が必要そう。
+
+#+begin_src emacs-lisp
+(use-package corfu
+  :straight t
+
+  :init
+  (global-corfu-mode)
+
+  :custom
+  (corfu-cycle t) ;`corfu-next/previous'による巡回を有効にする
+  ;; 自動補完は検討中
+  (corfu-auto t)
+  ;; (corfu-auto-delay 0.2) ;デフォルトは 0.2
+  ;; (corfu-auto-prefix 3)  ;デフォルト 3
+
+  ;; (corfu-quit-at-boundary nil)   ;補完境界?で終了しない
+  ;; (corfu-quit-no-match nil)      ;マッチがなくても終了しない
+  (text-mode-ispell-word-completion nil) ;emacs30以降 ispell 補完を無効にする必要があるらしい
+
+  ;; TAB corfu-complate を潰しているのに気がついたので一旦様子見 (SPCはそもそも空白を入力できなくなるので取りやめ)
+  ;; :bind
+  ;; (:map corfu-map
+  ;;       ;; ("SPC" . corfu-insert-separator) ;SPCでセパレータをいれる = Orderless補完に入る
+  ;;       ("TAB" . corfu-next)             ;TABで次候補
+  ;;       ([tab] . corfu-next)
+  ;;       ("S-TAB" . corfu-previous)       ;Shift-TABで前候補
+  ;;       ([backtab] . corfu-previous))
+  )
+
+(use-package corfu-popupinfo
+  :after (corfu)
+
+  :custom
+  (corfu-popupinfo-delay `(nil . 0.5))
+
+  :hook (corfu-mode . corfu-popupinfo-mode))
+
+(use-package nerd-icons-corfu
+  :straight t
+  :after (corfu nerd-icons)
+
+  :config
+  (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))
+
+(use-package corfu-terminal
+  :unless window-system
+
+  :straight t
+  :after (corfu)
+
+  :hook
+  (tty-setup-hook . corfu-terminal-mode))
+
+(use-package cape
+  :straight t
+
+  :custom
+  (cape-dabbrev-check-other-buffers nil)
+
+  :config
+  (add-hook 'completion-at-point-functions #'cape-file)
+  (add-hook 'completion-at-point-functions #'cape-keyword)
+  (add-hook 'completion-at-point-functions #'cape-dabbrev)
+
+  (global-set-key (kbd "C-M-/") #'cape-dabbrev))
+#+end_src
+
+** consult, embark
+
+- consult-ripgrep, consult-fd
+  - #コマンド向けの検索ワード#consultの絞り込み条件 のように#で区切って入力する
+  - プレフィックス引数とともにを呼び出した場合には、カンマ区切りでファイルとディレクトリーを手入力で指定できる
+  - C-u C-u M-s gのようにプレフィックス引数を指定して呼び出した場合には、まだプロジェクト内部にいなくても最初にプロジェクトの選択ができる
+  - ripgrep, fd のインストールが必要
+    - https://archlinux.org/packages/extra/x86_64/ripgrep/
+    - https://archlinux.org/packages/extra/x86_64/fd/
+
+- embarkのExportで出力されたバッファは編集・操作できる
+  - consult-ripgrep :: wgrep による編集 (e)
+  - find-file, consult-fd :: Dired による編集 (e)
+  - consult-line :: occur modeによる編集 (e)
+  - consult-buffer :: Ibufferによるバッファ操作が可能
+
+- Exportするモードを決めきれない場合 embark collectにフォールバックする
+  - embark collectモードでは M-a で embark-collect-direct-action-minor-mode に入る
+
+#+begin_src emacs-lisp
+(use-package consult
+  :straight t
+
+  :init
+  (advice-add #'register-preview :override #'consult-register-window)
+  (setq register-preview-delay 0.5)
+  (setq xref-show-xrefs-function #'consult-xref
+        xref-show-definitions-function #'consult-xref)
+
+  :bind (([remap switch-to-buffer] . consult-buffer)                          ;"C-x b"
+         ([remap switch-to-buffer-other-windo] . consult-buffer-other-window) ;"C-x 4 b"
+         ([remap switch-to-buffer-other-frame] . consult-buffer-other-frame)  ;"C-x 5 b"
+         ([remap switch-to-buffer-other-tab] . consult-buffer-other-tab)      ;"C-x t b"
+         ([remap project-switch-to-buffer] . consult-project-buffer)          ;"C-x p b"
+         ([remap yank-pop] . consult-yank-pop)                                ;"M-y"
+
+         ;; レジスタ・ブックマーク C-x r
+         ([remap bookmark-jump] . consult-bookmark)                           ;"C-x r b"
+         ([remap jump-to-register] . consult-register)                        ;"C-x r j"
+
+         ;; 移動 主に M-g
+         ([remap pop-global-mark] . (lambda (arg)                             ;"C-x C-SPC"
+                                      (interactive "p")
+                                      (cond ((= arg 4) (consult-global-mark))
+                                            (t (consult-mark)))))
+         ([remap goto-line] . consult-goto-line)                              ;"M-g g"
+         ([remap imenu] . (lambda (arg)                                       ;"M-g i"
+                            (interactive "p")
+                            (cond ((= arg 4) (consult-imenu-multi))
+                                  (t (consult-imenu)))))
+         ("M-g o" . (lambda (arg)                                             ;"M-g o"
+                      (interactive "p")
+                      (cond ((= arg 4) (consult-org-heading))
+                            (t (consult-outline)))))
+
+         ;; 検索 M-s
+         ("M-s f" . consult-fd)                                               ;"M-s f"
+         ("M-s g" . consult-ripgrep)                                          ;"M-s g"
+
+         ;; Isearch integration
+         :map isearch-mode-map
+         ("C-M-s" . consult-isearch-history)       ;; orig. isearch-edit-string
+         ("M-s" . consult-line)                  ;; needed by consult-line to detect isearch
+         ("M-S" . consult-line-multi)            ;; needed by consult-line to detect isearch
+         ;; Minibuffer history
+         :map minibuffer-local-map
+         ("M-s" . consult-history)                 ;; orig. next-matching-history-element
+         ("M-r" . consult-history)                 ;; orig. previous-matching-history-element
+
+         ;; ドキュメントにあってまだ使っていないもの
+         ;; C-c bindings in `mode-specific-map'
+         ;; ("C-c M-x" . consult-mode-command)
+         ;; ("C-c h" . consult-history)
+         ;; ("C-c k" . consult-kmacro)
+         ;; ("C-c m" . consult-man)
+         ;; ("C-c i" . consult-info)
+         ;; ([remap Info-search] . consult-info)
+         ;; C-x bindings in `ctl-x-map'
+         ;; ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complex-command
+         ;; Custom M-# bindings for fast register access
+         ;; ("M-#" . consult-register-load)
+         ;; ("M-'" . consult-register-store)          ;; orig. abbrev-prefix-mark (unrelated)
+         ;; M-s bindings in `search-map'
+         ;; ("M-s c" . consult-locate)
+         ;; ("M-s k" . consult-keep-lines)
+         ;; ("M-s u" . consult-focus-lines)
+         )
+
+  :config
+  ;; ミニバッファで?を入力して接頭辞のヘルプを表示する
+  (keymap-set consult-narrow-map (concat consult-narrow-key "?") #'consult-narrow-help))
+
+(use-package embark ; コンテキストメニュー
+  :straight t
+
+  :init
+  (setq prefix-help-command #'embark-prefix-help-command)
+
+  :custom
+  (embark-help-key "?") ; アクション名を絞り込み検索して決定できる。 @でショートカットキー入力できる
+  (embark-mixed-indicator-delay 3)
+
+  :bind
+  (("C-." . embark-act)         ;; 右クリックに相当
+   ;; ("C-;" . embark-dwim)        ;; good alternative: M-.
+   ([remap describe-bindings] . embark-bindings)) ;; alternative for `describe-bindings'
+
+  :config
+  ;; Hide the mode line of the Embark live/completions buffers
+  (add-to-list 'display-buffer-alist
+               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                 nil
+                 (window-parameters (mode-line-format . none)))))
+
+(use-package embark-consult
+  :straight t
+  :after (embark consult)
+
+  :hook
+  (embark-collect-mode . consult-preview-at-point-mode))
+#+end_src
+
+
+* treesit
+
+tree-sitterのインストールが必要。
+https://archlinux.org/packages/extra/x86_64/tree-sitter/
+
+文法ファイルのインストールは一度行えばOK。
+文法ファイルは user-emacs-directory/tree-sitter に配置される。
+
+(ちなみに、org-babel-execute-maybe("C-c C-v e")でコードブロックを実行できる。)
+#+begin_src emacs-lisp :tangle no
+(setq treesit-language-source-alist
+   '(
+     (bash "https://github.com/tree-sitter/tree-sitter-bash")
+     (cmake "https://github.com/uyha/tree-sitter-cmake")
+     (c "https://github.com/tree-sitter/tree-sitter-c")
+     (cpp "https://github.com/tree-sitter/tree-sitter-cpp")
+     (css "https://github.com/tree-sitter/tree-sitter-css")
+     (elisp "https://github.com/Wilfred/tree-sitter-elisp")
+     (html "https://github.com/tree-sitter/tree-sitter-html")
+     (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
+     (json "https://github.com/tree-sitter/tree-sitter-json")
+     (make "https://github.com/alemuller/tree-sitter-make")
+     (markdown "https://github.com/ikatyang/tree-sitter-markdown")
+     (python "https://github.com/tree-sitter/tree-sitter-python")
+     (toml "https://github.com/tree-sitter/tree-sitter-toml")
+     (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
+     (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
+     (yaml "https://github.com/ikatyang/tree-sitter-yaml")
+     )
+   )
+
+(mapc #'treesit-install-language-grammar (mapcar #'car treesit-language-source-alist))
+#+end_src
+
+インストールされている tree-sitter 対応のモードは C-h a -ts-mode で見れる。
+とりあえず、標準で入っていそうなもののうち、新旧両方あるものを major-mode-remap-alist に登録。
+
+major-mode-remap-alist は呼び出しを奪うだけなので、フックとかは -ts-mode に掛けるor掛け直す必要がある。
+
+| 言語       | 文法ファイル | -mode                  | -ts-mode                      | 設定       |
+|------------+--------------+------------------------+-------------------------------+------------|
+| bash       | yes          | sh-mode                | bash-ts-mode                  | remap      |
+| cmake      | yes          |                        | cmake-ts-mode                 |            |
+| c          | yes          | c-mode,c-or-c++-mode   | c-ts-mode, c-or-c++-ts-mode   | remap      |
+| cpp        | yes          | c++-mode,c-or-c++-mode | c++-ts-mode, c-or-c++-ts-mode | remap      |
+| csharp     |              | csharp-mode            | csharp-ts-mode                |            |
+| css        | yes          | css-mode               | css-ts-mode                   | remap      |
+| dockerfile |              |                        | dockerfile-ts-mode            |            |
+| elisp      | yes          |                        |                               |            |
+| go         |              |                        | go-ts-mode, go-mod-ts-mode    |            |
+| html       | yes          | mhtml-mode, html-mode  | html-ts-mode                  | remap (*2) |
+| java       |              |                        | java-ts-mode                  |            |
+| javascript | yes          | javascript-mode        | js-ts-mode                    | remap      |
+| json       | yes          |                        | json-ts-mode                  |            |
+| make       | yes          |                        |                               |            |
+| markdown   | yes          | markdown-mode(*1)      |                               |            |
+| python     | yes          | python-mode            | python-ts-mode                | remap      |
+| ruby       |              | ruby-mode              | ruby-ts-mode                  |            |
+| toml       | yes          | comf-toml-mode         | toml-ts-mode                  | remap      |
+| tsx        | yes          |                        | tsx-ts-mode                   |            |
+| typescript | yes          |                        | typescript-ts-mode            |            |
+| yaml       | yes          |                        | yaml-ts-mode                  |            |
+
+(*1)個別にインストールしたもの
+(*2)html-ts-modeはあるけど、mhtml-ts-modeはまだリリースされていない
+
+#+begin_src emacs-lisp
+(setq treesit-font-lock-level 3)
+
+(setq major-mode-remap-alist
+      '(
+        (sh-mode . bash-ts-mode)
+        (c-mode . c-ts-mode)
+        (c++-mode . c++-ts-mode)
+        (c-or-c++-mode . c-or-c++-ts-mode)
+        (csharp-mode . csharp-ts-mode)
+        (css-mode . css-ts-mode)
+        (javascript-mode . js-ts-mode)
+        (html-mode . html-ts-mode)
+        (python-mode . python-ts-mode)
+        (ruby-mode . ruby-ts-mode)
+        (comf-toml-mode. toml-ts-mode)
+        ))
+#+end_src
+
+
+* ドキュメント編集
+
+markdown-mode のエクスポートに pandoc が必要。
+https://archlinux.org/packages/extra/x86_64/pandoc-cli/
+
+python-grip が動かなくなっているので、gh-markdown-previewの利用を検討。
+https://yusukebe.com/posts/2021/gh-markdown-preview/
+
+
+#+begin_src emacs-lisp
+(setq dns-mode-soa-auto-increment-serial  nil) ;DNSゾーンファイルのシリアル値を自動でインクリメントしない
+
+(use-package markdown-mode ;markdown-mode はまだ現行品で良さそう
+  :straight t
+
+  :custom
+  (markdown-command  '("pandoc" "--from=markdown" "--to=html5"))
+
+  :mode
+  ("README\\.md\\'" . gfm-mode))
+
+(use-package css-mode
+  :custom
+  (css-indent-offset 2))
+#+end_src
+
+** 野鳥
+
+LaTeXの タイプセット環境が必要。
+YaTeX-Template-File は autoinsert に移動。
+
+[[https://fanblogs.jp/goodfornothing/archive/3440/0][Emacs: やてふモードで TeX ファイルが色付きにならない問題]]
+YaTeX 1.84 で修正された模様。2025-03-09 時点で master は 1.83相当なのでブランチを master から devel へ変更。
+
+#+begin_src emacs-lisp
+(use-package yatex
+  :straight (yatex-mode :type git :host nil :repo "https://www.yatex.org/gitbucket/git/yuuji/yatex.git" :branch "devel")
+
+  :mode
+  ("\\.tex\\'" . yatex-mode)
+
+  :custom
+  (YaTeX-inhibit-prefix-letter t)
+  (tex-command "lualatex -synctex=1")
+  (YaTeX-kanji-code nil)
+  (YaTeX-latex-message-code 'utf-8)
+  (dvi2-command "zathura -P 1 -x \"emacsclient --no-wait +%{line} %{input}\"")
+  (tex-pdfview-command "zathura -P 1 -x \"emacsclient --no-wait +%{line} %{input}\"")
+  (dviprint-command-format "pdftops %t %s -level3 %f - | lpr")
+  (dviprint-from-format "-f %b")
+  (dviprint-to-format "-l %e")
+  (YaTeX-user-completion-table (locate-user-emacs-file "yatex/yatexrc"))
+  ;; (YaTeX-template-file (locate-user-emacs-file "yatex/templates/LaTeX-template.tex"))
+  (YaTeX-singlecmd-suffix "{}")
+  (YaTeX-fill-column 119))
+
+  ;; :config
+  ;;  (add-hook 'yatex-mode-hook '(lambda () (font-lock-mode))))
+#+end_src
+
+
+* プログラミング
+
+- 気になっているもの
+  - puni
+
+- ナローイング
+  - C-x n s org-modeでサブツリーが対象
+  - C-x n d defunが対象
+  - C-x n w でもとに戻す (共通)
+- ハイディング
+  - C-c h h hs-toggle-hiding
+  - C-c h l hs-hide-level
+  - C-c h a hs-hide-all
+  - C-c h s hs-show-all
+
+flymake-posframe は eldoc-box-help-at-point より前面に表示されるので一旦止めている。
+
+#+begin_src emacs-lisp
+(use-package prog-mode
+  :preface
+  (defun prog-mode-hooks ()
+    (electric-layout-mode -1))
+
+  :custom
+  (display-line-numbers-widen t)             ;ナローイング時にもバッファ全体の行番号を用いる
+  (display-line-numbers-grow-only t)         ;行番号の桁数を縮小しない
+  ;; (eldoc-echo-area-use-multiline-p . nil)    ;eldocの表示を1行に収める
+  ;; (flymake-no-changes-timeout nil)           ;自動的にチェックしない
+  ;; (flymake-start-on-save-buffer t)           ;セーブ後にチェックする
+  (compilation-scroll-output t)              ;コンパイルバッファをスクロールする
+
+  :bind
+  ("<f6> l" . display-line-numbers-mode)
+  ("<f6> W" . which-function-mode)
+  (:map prog-mode-map
+        ("C-c h h" . hs-toggle-hiding)
+        ("C-c h l" . hs-hide-level)
+        ("C-c h a" . hs-hide-all)
+        ("C-c h s" . hs-show-all)
+        ("C-x n d" . narrow-to-defun)
+        ("C-c f !" . flymake-mode)
+        ("C-c f F" . flymake-start)
+        ("C-c f f" . consult-flymake)
+        ("C-c f l" . flymake-show-buffer-diagnostics)
+        ("C-c f L" . flymake-show-project-diagnostics)
+        ("C-c f n" . flymake-got-next-error)
+        ("C-c f p" . flymake-got-prev-error)
+        ("C-c c e" . consult-compile-error)
+        )
+  :hook
+  (prog-mode-hook . display-line-numbers-mode)
+  (prog-mode-hook . electric-pair-mode)
+  (prog-mode-hook . electric-indent-mode)
+  (prog-mode-hook . hs-minor-mode)
+  (prog-mode-hook . which-function-mode)
+  (prog-mode-hook . flymake-mode)
+  (prog-mode-hook . prog-mode-hooks))
+
+(use-package rainbow-delimiters
+  :straight t
+
+  :hook
+  (prog-mode-hook . rainbow-delimiters-mode))
+
+;; (use-package flymake-posframe
+;;   :if window-system
+;;
+;;   :straight (flymake-posframe :type git :host github :repo "Ladicle/flymake-posframe")
+;;
+;;   :hook
+;;   (prog-mode . flymake-posframe-mode))
+
+(use-package eldoc-box
+  :straight t
+
+  :preface
+  (defun eldoc-box-hooks ()
+    (eldoc-box-hover-mode -1))
+
+  :hook
+  (prog-mode-hook . eldoc-box-hooks))
+#+end_src
+
+** バージョン管理
+
+- 見送ったもの
+  - forge
+  - magit-gitflow
+
+git-gutter-fringe の repeat-map はまだちゃんと動いていない。
+
+#+begin_src emacs-lisp
+(use-package magit
+  :straight  t)
+
+(use-package magit-delta
+  :straight t
+  :after (magit)
+
+  :custom
+  (magit-delta-delta-args '("--features" "magit-delta" "--color-only"))
+  (magit-delta-default-dark-theme "none")
+  (magit-delta-default-light-theme "none")
+
+  :hook
+  (magit-mode-hook . magit-delta-mode))
+
+(use-package git-gutter-fringe
+  :straight t
+  :demand t
+
+  :bind
+  ("C-c C-<up>" . git-gutter:previous-hunk)  ;忘れそうなので積極的に使う
+  ("C-c C-<down>" . git-gutter:next-hunk)
+  (:repeat-map git-gutter-repeat-map         ;こっちはまだちゃんと動いていない
+               ("n" . git-gutter:next-hunk)
+               ("p" . git-gutter:previous-hunk)
+               ("s" . git-gutter:stage-hunks)
+               ("r" . git-gutter:revert-hunk))
+
+  :config
+  (global-git-gutter-mode t))
+#+end_src
+
+** eglot
+
+パフォーマンス関連で様子を見ている設定
+| 変数                              | 既定値 | 検討値                     |                                             |
+|-----------------------------------+--------+----------------------------+---------------------------------------------|
+| eglot-inlay-hints-mode            | nil    | nil                        | inlay ヒントの利用                          |
+| eglot-ignored-server-capabilities | nil    | :documentHighlightProvider | 無視する LSPサーバの機能                    |
+| eglot-send-changes-idle-time      | 0.5    | 2.0                        | LSPサーバに変更内容を送信するまでの待機時間 |
+| jsonrpc-default-request-timeout   | 10     | 30                         | jsonrpcのタイムアウト                       |
+| #'jsonrpc--log-event              |        | #'ignore                   | ログ処理                                    |
+
+
+eglot-send-changes-idle-time は書きかけの状態で flymake のチェックが走るのでそれを遅らせるためにも少し遅めにしています。
+
+corfuとの併用については以下も参照
+https://github.com/minad/corfu/wiki#configuring-corfu-for-eglot
+
+以下変換候補に関する抜粋。現状でもでもtemple-expandとか、cafe-fileとか効いているようにも見えるんだけど。
+#+begin_example
+(defun my/eglot-capf ()
+  (setq-local completion-at-point-functions
+              (list (cape-capf-super
+                     #'eglot-completion-at-point
+                     #'tempel-expand
+                     #'cape-file))))
+
+(add-hook 'eglot-managed-mode-hook #'my/eglot-capf)
+#+end_example
+
+- 後で試したい
+  - consult-eglot-symbols は pylsp ではシンボル検索が有効でなくてまだ試せていない
+  - eglot-inlay-hints-mode どこで効いているか実感がない
+
+- 以下は consult-flymake("C-c f f") があればいらないかもしれない
+  - ("C-c f l" . flymake-show-buffer-diagnostics)
+  - ("C-c f L" . flymake-show-project-diagnostics)
+  - ("C-c f n" . flymake-got-next-error)
+  - ("C-c f p" . flymake-got-prev-error)
+
+eglot-confirm-server-ediff 'diff は Diff モードの操作で提案を適用するか棄却するか選択する。
+とりあえず、C-c C-a (diff-apply-hunk) だけ覚えておく。
+
+#+begin_src emacs-lisp
+(use-package eglot
+  :straight t
+
+  :custom
+  (eglot-confirm-server-edits 'diff)
+  (eglot-inlay-hints-mode t)
+  ;; (eglot-extend-to-xref t)   ; xrefで訪問したファイルをプロジェクトに含まれるとみなす
+  ;; (eglot-prefer-plaintext t) ; markdownの整形を行わない
+  ;; 以下は主にパフォーマンス調整による設定
+  ;; (eglot-ignored-server-capabilities
+  ;;       '(:documentHighlightProvider ;カーソル位置のシンボルをハイライト
+  ;;         ))
+  (eglot-send-changes-idle-time 2.0)
+  (jsonrpc-default-request-timeout 30)
+  :bind
+  (:map eglot-mode-map
+        ("C-c e !" . eglot-reconnect)
+        ("C-c e r" . eglot-rename)
+        ("C-c e f" . eglot-format)
+        ("C-c e a" . eglot-code-actions)
+        ("C-h ." . eldoc-box-help-at-point)
+        ;; 以下は prog-mode でマップ
+        ;; ("C-c f F" . flymake-start)
+        ;; ("C-c f f" . consult-flymake)
+        ;; ("C-c f l" . flymake-show-buffer-diagnostics)
+        ;; ("C-c f L" . flymake-show-project-diagnostics)
+        ;; ("C-c f n" . flymake-got-next-error)
+        ;; ("C-c f p" . flymake-got-prev-error)
+        ;; 以下はデフォルト
+        ;; ("M-." . xref-find-definition)
+        ;; ("M-?" . xref-find-references)
+        ;; ("M-," . xref-go-back)
+        ;; ("C-M-i" . complation-at-point)
+        )
+
+  :config
+  ;; (fset #'jsonrpc--log-event #'ignore) ;ログが遅延の原因になっていそうなら有効にする
+  (add-to-list 'eglot-stay-out-of 'imenu) ;pylspが戻すimenuの値がおかしかったので使わない
+  (advice-add 'eglot-completion-at-point :around #'cape-wrap-buster) ;https://github.com/minad/corfu/wiki#configuring-corfu-for-eglot
+  )
+
+(use-package eglot-booster
+  :straight (eglot-booster :type git :host github :repo "jdtsmith/eglot-booster")
+  :after eglot
+
+  :config
+  (eglot-booster-mode))
+
+(use-package consult-eglot
+  :straight t
+  :after (consult eglot)
+
+  :bind
+  (:map eglot-mode-map
+        ("C-c e s" . consult-eglot-symbols))
+
+  :config
+  (consult-eglot-embark-mode))
+
+(use-package eglot-tempel
+  :straight t
+  :after (eglot tempel)
+
+  :preface
+  (eglot-tempel-mode)
+
+  :init
+  (eglot-tempel-mode t))
+#+end_src
+
+** LSPサーバ
+
+*** python-lsp-server
+
+以下でインストール。poetry がいる場合は poetry add --optional --group lsp を使う。
+インストールされているパッケージを見つけるためにプロジェクトの venv の中にインストールする必要がある。
+
+#+begin_src shell
+pip install "pydocstyle[toml]"
+pip install "python-lsp-server[all]"
+pip install pylsp-mypy
+pip install python-lsp-isort
+pip install python-lsp-black
+#+end_src
+
+*** typescript-language-server
+
+以下でインストール。add-node-modules-pathでプロジェクトのnode_modules/.bin配下のコマンドを利用するようになる。
+
+prettier とかはLSP関係ないけど、TypeScript事始めのページができるまではここに書く。
+
+#+begin_src shell
+npm init
+npm install -D typescript-language-server typescript
+npm install -D typescript-eslint-language-service
+npm install -D prettier
+#+end_src
+
+prettier はほかでも使いそうなのでグローバルインストールしておく。
+asdf でインストールした nodeje でグローバルインストールされたものは ~/.asdf/installs/nodejs/XX.XX.XX/bin にある。
+
+#+begin_src shell
+npm install -g prettier
+ln -s ~/.asdf/installs/nodejs/22.14.0/bin/prettier ~/bin
+#+end_src
+
+
+*** eglot向けの設定
+
+デフォルト値として以下を設定。
+- pydocstyleは終了しているみたいなので無効にする。
+- rope_autoimportは有効にしていると安定しないので無効にする。折を見て再確認する。
+
+#+begin_src emacs-lisp
+(setq-default eglot-workspace-configuration
+              '(:pylsp (
+                        :plugins (:autopep8 (:enable :json-false)
+                                  :flake8 (:enabled t)
+                                  :mccabe (:enabled t)
+                                  :pycodestyle (:enabled t)
+                                  :pydocstyle (:enabled :json-false :conversion "google")
+                                  :pylint (:enabled t :executable "pylint")
+                                  :rope_autoimport (:enabled :json-false)
+                                  :yape (:enabled :json-false)
+                                  :black (:enabled t)))))
+#+end_src
+
+あるいは以下の内容を .dir-locals.el もしくは .dir-locals-2.el に記載。
+
+#+begin_src emacs-lisp :tangle no
+((python-base-mode . ((eglot-workspace-configuration . (:pylsp (:plugins (:autopep8 (:enable :json-false)
+                                                                          :flake8 (:enabled t)
+                                                                          :mccabe (:enabled t)
+                                                                          :pycodestyle (:enabled t)
+                                                                          :pydocstyle (:enabled :json-false :conversion "google")
+                                                                          :pylint (:enabled t :executable "pylint")
+                                                                          :rope_autoimport (:enabled :json-false)
+                                                                          :yape (:enabled :json-false)
+                                                                          :black (:enabled t)))))
+                      (eval . (add-to-list 'eglot-server-programs '((python-ts-mode) "/PATH/TO/pylsp"))))
+                   ))
+#+end_src
+
+** python
+
+tree-sitter 対応モードを使うので、フックは python-ts-mode(もしくは python-base-mode) に引っ掛ける。mapは python-ts-mode-map。
+
+パッケージへの変更
+- py-isortの py-isort-before-save は python-mode かどうかのチェックをしているので、コードを編集して python-ts-mode に変える。
+- auto-virtualenvwrapper は .venv の検出より .python-version の検出の処理が先にあるので、コードを編集して順番を逆にする。
+
+#+begin_src emacs-lisp
+(use-package virtualenvwrapper
+  :straight t
+
+  :custom
+  (venv-location "~/var/pyvenv/")
+
+  :config
+  (venv-initialize-interactive-shells)
+  (venv-initialize-eshell))
+
+(use-package auto-virtualenvwrapper
+  :straight t
+
+  :hook
+  (python-ts-mode . auto-virtualenvwrapper-activate))
+
+(use-package blacken
+    :straight t
+
+    :custom
+    (blacken-only-if-project-is-blackened t)
+
+    :hook
+    (python-ts-mode . blacken-mode))
+
+(use-package py-isort
+     :straight t
+
+     :hook
+     (before-save-hook . py-isort-before-save))
+
+(use-package python-pytest
+  :straight t
+  :demand t
+
+  :custom
+  (python-pytest-confirm t)
+
+  :bind
+  (:map python-ts-mode-map
+        ("C-c c t" . python-pytest-dispatch)))
+#+end_src
+
+** JavaScript/TypeScript
+
+#+begin_src emacs-lisp
+(use-package js
+  :custom
+  (js-indent-level 2))
+
+(use-package prettier-js
+  :straight t
+
+  :hook
+  ((js-ts-mode typescript-ts-mode tsx-ts-mode mhtml-mode css-ts-mode) . prettier-js-mode))
+
+(use-package add-node-modules-path
+  :straight t
+
+  :custom
+  (add-node-modules-path-command '("echo \"$(npm root)/.bin\""))
+
+  :hook
+  ((js-ts-mode  typescript-ts-mode tsx-ts-mode) . add-node-modules-path))
+#+end_src
+
+** Makefile
+
+#+begin_src emacs-lisp
+(defun makefile-mode-hooks ()
+  (setq-local indent-tabs-mode t))
+(add-hook 'makefile-mode-hook 'makefile-mode-hooks)
+#+end_src
+
+
+* アプリケーション
+
+気になっている パッケージ
+- kube.el https://github.com/jinnovation/kele.el
+
+** ediff
+
+#+begin_src emacs-lisp
+(setq ediff-window-setup-function 'ediff-setup-windows-plain) ;操作ウィンドウをフレームに収める
+(setq ediff-split-window-function 'split-window-horizontally) ;比較を左右分割で行う
+#+end_src
+
+** diffastic
+
+magit の diff にコマンドを足すものの、magitの差分表示で使うことはできないみたい。
+なので、magit-deltaもセットアップしておく。
+
+#+begin_src emacs-lisp
+(use-package difftastic
+  :straight t
+
+  :init
+  (difftastic-bindings-mode))
+#+end_src
+
+** Dired
+
+気になるもの
+- https://qiita.com/takc923/items/1d65622ed82697d00f6a
+
+#+begin_src emacs-lisp
+(use-package dired
+  :preface
+  (defun dired-open-file ()
+    "In dired, open the file named on this line."
+    (interactive)
+    (let* ((file (dired-get-filename nil t)))
+      (call-process "xdg-open" nil 0 nil file)))
+
+  :custom
+  (dired-isearch-filenames t)       ;C-s でファイルリストのみを対象とする
+  (dired-listing-switches "-alh")   ;ls のオプション
+  (dired-dwim-target t)             ;コピー/移動の対象をもう一つのdiredバッファにする
+  (dired-omit-files "\\`[.][^.]+")  ;非表示にするファイル名として.から始まるファイルを指定
+  (dired-omit-mode t)               ;dired-omit-filesを表示しないモードを有効にする
+
+  :bind
+  (:map dired-mode-map
+        ("C-l" . dired-up-directory)
+        ("h" . dired-omit-mode)
+        ("e" . wdired-change-to-wdired-mode)
+        ("C-c o" . dired-open-file))
+  :hook
+  (dired-load-hook . (lambda() (load "dired-x"))))
+
+(use-package nerd-icons-dired
+  :straight t
+  :after (dired nerd-icons)
+
+  :hook
+  (dired-mode . nerd-icons-dired-mode))
+#+end_src
+
+** Calendar
+
+#+begin_src emacs-lisp
+(use-package calendar
+  :custom
+  (calendar-week-start-day 1)                         ;月曜始まりにする
+  (diary-file (locate-user-emacs-file "diary/diary")) ;ダイアリーファイルの指定
+  (calendar-date-style 'iso)                          ;日付のフォーマットをyyyy/mm/ddに
+  (calendar-time-display-form '(24-hours ":" minutes (if time-zone " (") time-zone (if time-zone ")"))) ;時刻のフォーマットを HH:MM (TZ) に
+  (appt-message-warning-time 5)                       ;デフォルトのリマインダ時間を5分に
+  (diary-list-include-blanks t)                       ;予定のない日でもFancy diaryバッファに表示
+  ;; (cal-tex-diary . t)                                 ;カレンダーのLaTeX出力にに日誌記録を含める
+
+  :config
+  (add-hook 'calendar-today-visible-hook 'calendar-mark-today)         ;カレンダ表示時に今日をマークする
+  (add-hook 'diary-list-entries-hook 'diary-include-other-diary-files) ;diaryファイルで#includeを有効にする
+  (add-hook 'diary-mark-entries-hook 'diary-mark-included-diary-files) ;diaryファイルで#includeを有効にする
+  )
+
+(use-package japanese-holidays
+  :straight t
+  :demand t
+
+  :custom
+  (calendar-mark-holidays-flag t)      ;休日をマークする
+  :hook
+  (calendar-today-visible-hook . japanese-holiday-mark-weekend)
+  (calendar-today-invisible-hook . japanese-holiday-mark-weekend)
+
+  :config
+  (setq calendar-holidays (append japanese-holidays holiday-local-holidays holiday-other-holidays)))
+#+end_src
+
+** Org Mode
+
+#+begin_src emacs-lisp
+(use-package org
+  :straight t
+
+  :init
+  (defun org-hode-hooks ()
+    (add-hook 'before-save-hook 'org-agenda-to-appt t))
+
+  :custom
+  (org-imenu-depth 4)                       ;4段目までimenuに載せる
+  (org-use-sub-superscripts '{})            ;^上付き _下付き を{}が後続する時に制限する
+  (org-export-with-sub-superscripts '{})    ;^上付き _下付き を{}が後続する時に制限する (exportのとき)
+  (org-directory "~/task")
+  (org-agenda-files '("~/task/work.org"
+                      "~/task/home.org"
+                      "~/task/routine.org"))
+  (org-startup-indented t)                  ;見出しをインデントする
+  (org-src-preserve-indentation t)          ;コードブロックで1段インデントしない
+  (org-src-window-setup 'current-window)    ;コードブロックの編集を現在のウィンドウで行う
+  (org-clock-out-remove-zero-time-clocks t) ;一分未満を計時しない
+  (org-log-done 'time)                      ;DONEに遷移したとき時刻を記録する
+  (org-agenda-include-diary t)              ;アジェンダにdiaryの内容を含める
+  (org-agenda-start-on-weekday 1)           ;週のアジェンダを月曜始まりにする
+  (org-agenda-sort-notime-is-late nil)      ;時刻のない予定を上位に表示する
+  (org-todo-keyword-faces '(("TODO"      . (:foreground "firebrick2" :weight bold))
+                            ("PROGRESS"  . (:foreground "khaki" :weight bold))
+                            ("WAITING"   . (:foreground "olivedrab" :weight bold))
+                            ("SCHEDULED" . (:foreground "olivedrab" :weight bold))
+                            ("SOMEDAY"   . (:foreground "steelblue" :weight bold))
+                            ("PENDING"   . (:foreground "dimgrey" :weight bold))
+                            ("DONE"      . (:foreground "forestgreen" :weight bold))
+                            ("CANCELED"  . shadow)))
+  (org-capture-templates '(("w" "new TODO entry(work.org)" entry (file+headline "work.org" "Inbox") "** TODO %?" :prepend t)
+                           ("h" "new TODO entry(home.org)" entry (file+headline "home.org" "Inbox") "** TODO %?" :prepend t)
+                           ("m" "memo" entry (file "memo.org") "* %U\n%?\n" :prepend t)
+                           ("r" "active region" entry (file "memo.org") "* %? %U\n%i\n" :prepend t)
+                           ("x" "X clipboard" entry (file "memo.org") "* %? %U\n%x\n" :prepend t)))
+  (org-stuck-projects '("-memo-someday-routile+LEVEL=2;; " ("TODO" "PROGRESS" "WAITING" "SCHEDULED" "SOMEDAY" "PENDING" "DONE" "CANCELED" ) nil ""))
+
+  :bind
+  ("C-c o a" . org-agenda)
+  ("C-c o c" . org-capture)
+  ("C-c o s" . org-store-link)
+  :hook
+  (org-mode-hook . org-hode-hooks)    ;保存時にorg-agenda-to-apptを実行
+
+  :config
+  (setq org-todo-keywords '((sequence
+                             "TODO(t)"
+                             "PROGRESS(p)"
+                             "WAITING(w)"
+                             "SCHEDULED(s)"
+                             "SOMEDAY"
+                             "|"
+                             "DONE(d)"
+                             "PENDING"
+                             "CANCELED(c)")))
+  (require 'org-habit))
+
+(use-package org-contrib
+  :straight t
+
+  :config
+  (require 'ol-wl))
+#+end_src
+
+** Wanderlust
+
+C-x m でメール編集。
+
+#+begin_src emacs-lisp
+(use-package wanderlust
+  :straight t
+
+  :init
+  (require 'wl)
+  (autoload 'wl-user-agent-compose "wl-draft" nil t)
+  (if (boundp 'mail-user-agent)
+      (setq mail-user-agent 'wl-user-agent))
+  (if (fboundp 'define-mail-user-agent)
+      (define-mail-user-agent
+        'wl-user-agent
+        'wl-user-agent-compose
+        'wl-draft-send
+        'wl-draft-kill
+        'mail-send-hook))
+
+  :custom
+  (elmo-imap4-use-modified-utf7 t)        ;日本語メールボックス
+  ;; (elmo-passwd-storage-type 'auth-source) ;パスワードをauth-sourceに保存
+  (elmo-localdir-folder-path "~/var/mail") ; Local mail directory
+  (wl-default-spec "")                    ;フォルダ名保管時のデフォルト
+  (wl-auto-check-folder-name "%INBOX")    ;起動時に %INBOXのみ確認する
+  (wl-biff-check-folder-list '("%INBOX")) ;新着確認
+  (wl-folder-check-async t)               ;非同期でフォルダをチェックする
+  ;; フォルダモード
+  (wl-stay-folder-window t)               ;サマリに移動した時にフォルダバッファを残す
+  (wl-folder-window-width 35)             ;残すフォルダバッファの幅
+  (wl-folder-many-unsync-threshold 100)   ;100通以上のメッセージを多いと感じる
+  (wl-fldmgr-make-backup nil)             ;.folders.bakを作成しない
+  ;; サマリモード
+  (wl-summary-line-format "%-6n%T%P%M/%D(%W)%h:%m %t%[%17(%c %f%) %] %s") ;サマリ行の書式
+  (wl-summary-showto-folder-regexp ".*")      ;自分が差出人であるメールを To:某 と表示するフォルダ
+  (wl-summary-default-view 'sequence)         ;スレッド表示をデフォルトでオフにする
+  (wl-auto-select-next 'unread)               ;未読メッセージがなくなったら次のフォルダへ移動する
+  (wl-summary-exit-next-move nil)             ;サマリを終了するときに次のフォルダに移動しない
+  (wl-summary-subject-function 'identity)     ;サマリ行のサブジェクトを加工しない
+  (wl-summary-move-direction-toggle nil)      ;読む順番によらずメッセージの移動方向を一定にする
+  (wl-summary-width nil)                      ;サマリ行を切り詰めしない
+  (wl-summary-print-argument-within-window t) ;ウィンドウの右端に揃えてアクション引数を表示
+  (wl-summary-indent-length-limit nil)        ;サマリのインデントを無制限に
+  (elmo-folder-update-threshold 1000)         ;サマリの更新を一部分にするかどうか確認する閾値
+  (elmo-message-fetch-threshold 1000000)      ;フェッチに確認を求める際の閾値
+  ;; メッセージバッファ
+  (wl-message-ignored-field-list '(".*"))         ;表示しないヘッダのリスト
+  (wl-message-visible-field-list '("^Subject:" "^From:" "^To:" "^Cc:" "^Date:")) ;表示するヘッダのリスト
+  (wl-generate-mailer-string-function 'wl-generate-user-agent-string-1) ;User-Agentを短く
+  (wl-draft-reply-use-address-with-full-name nil) ;返信時に相手のフルネームを使用しない
+  (wl-fcc-force-as-read t)                        ;送信済メールは既読にする
+  (mime-edit-split-message nil)                   ;メッセージを分割しない
+
+  :config
+  (add-hook 'wl-draft-mode-hook  (lambda() (setq fill-column 70)))
+  (setq wl-summary-number-column-alist  ;メッセージ番号の桁数を増やす
+        (append '(("^%.*$" . 6)) wl-summary-number-column-alist)))
+#+end_src
+
+** treemacs
+
+- ? で hydra のヘルプが表示される
+- 基本的なナビゲーション
+  - n/p ノードの上下
+  - M-n/N-p 同階層の上下
+  - u 親階層への移動
+  - C-j/C-k プロジェクトの移動
+- < > ウィンドウ幅の調整
+- = ウィンドウ幅の自動調整
+- th ドットファイルの表示
+- ti .gitignore対象ファイルの表示
+- ノードのオープンはプレフィックス o 配下
+- プロジェクト関連はプレフィックス C-c C-p 配下
+
+- treemacs-peek-mode (P押下) は都度有効にする必要があるっぽい。[RET]でファイルを選択すると終了する
+- ノードの一括展開はプレフィックスをつけて行う
+
+#+begin_src emacs-lisp
+(use-package treemacs
+  :straight t
+
+  :custom
+  (treemacs-project-follow-cleanup t) ;表示中のプロジェクト以外を展開しない
+  ;; (imenu-auto-refresh t)
+
+  :bind
+  ("<f6> d" . treemacs)
+
+  :config
+  (treemacs-follow-mode t)
+  ;; (treemacs-tag-follow-mode t)
+  (treemacs-filewatch-mode t)
+  (treemacs-fringe-indicator-mode 'always)
+  (treemacs-hide-gitignored-files-mode nil)
+  (when treemacs-python-executable
+    (treemacs-git-commit-diff-mode t))
+  (pcase (cons (not (null (executable-find "git")))
+               (not (null treemacs-python-executable)))
+    (`(t . t)
+     (treemacs-git-mode 'deferred))
+    (`(t . _)
+     (treemacs-git-mode 'simple))))
+
+(use-package treemacs-magit
+  :straight t
+  :after (treemacs magit))
+
+(use-package treemacs-nerd-icons
+  :straight t
+  :after (treemacs nerd-icons)
+
+  :config
+  (treemacs-load-theme "nerd-icons"))
+#+end_src
+
+** imenu-list
+
+#+begin_src emacs-lisp
+(use-package imenu-list
+  :straight t
+
+  :custom
+  (imenu-list-auto-resize t)
+  :bind
+  ("<f6> i" . imenu-list-smart-toggle))
+#+end_src
+
+** Lookup
+
+lookup は http://green.ribbon.to/~ikazuhiro/lookup/lookup.html のものをダウンロードして手元でビルドしたものを elisp/lookup 配下に設置。
+
+他に以下が必要。
+- libeb https://aur.archlinux.org/packages/libeb
+- eblook http://green.ribbon.to/~ikazuhiro/lookup/lookup.html#EBLOOK
+
+以下のキーバインドはちゃんと機能していないものもありそうなので調べておく。
+- n, p 見つかったエントリを前後して表示を切り替える
+- v エントリ一覧を広げる
+- o Lookupのバッファを広げる
+- <SPC> <DEL> コンテンツバッファをスクロールする
+- h コンテンツバッファへ移動する
+- L コンテンツバッファ内の参照をエントリバッファにリストする
+- C-M-p C-M-n 検索履歴を前後する
+- w コンテツバッファの内容をコピーする
+
+あと、検索時のウィンドウ分割がうまくいっていないのが気になる。日本語フォントの設定をするとズレ始める。
+
+#+begin_src emacs-lisp
+(use-package lookup
+  :load-path "elisp/lookup"
+
+  :commands lookup
+
+  :custom
+  (ndspell-ispell-program "aspell")
+  (lookup-enable-splash nil)
+  (ndeb-binary-programs '((wave "sndfile-play")))
+
+  :bind
+  (:map ctl-x-map
+        ("y" . lookup-region)
+        ("C-y" . lookup-pattern))
+  :config
+  (setq lookup-cache-file-name (locate-user-emacs-file (concat ".lookup-cache-" (car (split-string system-name "\\.")) ".el"))))
+
+(use-package stem-english ;; 英単語の語尾を取り除く
+  :straight t)
+#+end_src
+
+** 翻訳
+
+M-x ispell or M-$ (ispell-word) でaspellを使用したスペルチェックはできる。リージョンを対象に実行もできる。
+リアルタイムで実行する flyspellもある。
+
+go-translate は リージョンに対して起動して、候補バッファ内で編集を行っても元のリージョンの内容に対して翻訳を行おうとするように見える。要確認。
+
+#+begin_src emacs-lisp
+(use-package go-translate
+  :straight t
+
+  :custom
+  (gt-preset-translators `((google . ,(gt-translator
+                                       :taker (gt-taker :langs '(ja en) :prompt 'buffer)
+                                       :engines (list (gt-google-engine :parse (gt-google-parser))
+                                                      (gt-google-engine :parse (gt-google-summary-parser)))
+                                       :render (list ;(gt-posframe-pop-render :if 'word)
+                                                     (gt-buffer-render :then (gt-kill-ring-render)))))))
+
+  :bind
+  ("C-c t" . gt-do-translate))
+#+end_src
+
+** Atomic chrome
+
+#+begin_src emacs-lisp
+(use-package atomic-chrome
+  :straight t
+
+  :custom
+  (atomic-chrome-buffer-open-style 'full))
+#+end_src
+
+** emamux
+
+#+begin_src emacs-lisp
+(use-package emamux
+  :straight t
+  :demand t
+
+  :bind
+  (:map tab-prefix-map
+        ("C-0" . (lambda() (interactive)(emamux:tmux-run-command nil "select-window" "-t" ":=0")))
+        ("C-1" . (lambda() (interactive)(emamux:tmux-run-command nil "select-window" "-t" ":=1")))
+        ("C-2" . (lambda() (interactive)(emamux:tmux-run-command nil "select-window" "-t" ":=2")))
+        ("C-3" . (lambda() (interactive)(emamux:tmux-run-command nil "select-window" "-t" ":=3")))
+        ("C-4" . (lambda() (interactive)(emamux:tmux-run-command nil "select-window" "-t" ":=4")))
+        ("C-5" . (lambda() (interactive)(emamux:tmux-run-command nil "select-window" "-t" ":=5")))
+        ("C-6" . (lambda() (interactive)(emamux:tmux-run-command nil "select-window" "-t" ":=6")))
+        ("C-7" . (lambda() (interactive)(emamux:tmux-run-command nil "select-window" "-t" ":=7")))
+        ("C-8" . (lambda() (interactive)(emamux:tmux-run-command nil "select-window" "-t" ":=8")))
+        ("C-9" . (lambda() (interactive)(emamux:tmux-run-command nil "select-window" "-t" ":=9")))
+        ("C-c" . emamux:new-window)
+        ("C-k" . emamux:close-runner-pane)
+        ("C-n" . (lambda() (interactive)(emamux:tmux-run-command nil "next-window")))
+        ("C-p" . (lambda() (interactive)(emamux:tmux-run-command nil "previous-window")))
+        ("C-/" . (lambda() (interactive)(emamux:tmux-run-command nil "display-panes")))
+        ("C--" . emamux:split-window)
+        ("C-s" . emamux:send-command)))
+#+end_src
+
+** 認証情報の保存
+
+#+begin_src emacs-lisp
+(setq auth-source `(password-store)) ; pass を使用する
+
+(use-package pass
+  :straight t)
+#+end_src
+
+
+* ホスト固有の設定を読み込む
+
+init.elと同じディレクトリにある init-ホスト名.el をロードする。
+主に、緯度経度の設定とフォントの設定が入っている。基本的にバージョン管理には含めない。
+
+#+begin_src emacs-lisp
+(setq init-host-el (locate-user-emacs-file (concat "init-" (car (split-string system-name "\\.")) ".el")))
+(if (file-exists-p init-host-el)
+    (load-file init-host-el))
+#+end_src
+
+
+* 各種起動
+
+#+begin_src emacs-lisp
+(require 'project)
+
+(require 'server)
+(unless (server-running-p)
+  (server-start))
+
+(atomic-chrome-start-server)
+(org-agenda-to-appt)
+(appt-activate 1)
+
+(use-package diary-lib
+  :hook
+  (emacs-startup-hook . diary))
+#+end_src

@@ -1,0 +1,123 @@
+\documentclass[aspectratio=169,cjk]{beamer} %オプション handout で印刷用
+\usepackage{appendixnumberbeamer} %appendixを総ページ番号に含めない
+\usepackage{graphicx}
+\usepackage{tabularray}
+\UseTblrLibrary{booktabs}
+\usepackage[no-math,deluxe]{luatexja-preset}
+\renewcommand{\kanjifamilydefault}{\gtdefault}
+\renewcommand{\emph}[1]{{\upshape\bfseries #1}}
+\usetheme{Boadilla}
+% \usetheme{metropolis}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{enumerate item}[default]
+\setbeamertemplate{itemize item}[default]
+\setbeamertemplate{section in toc}[sections numbered]
+\setbeamertemplate{subsection in toc}{\hspace{1.2em}{\rule[0.3ex]{3pt}{3pt}}~\inserttocsubsection\par}
+
+\title[短縮形]{ドキュメントタイトル}
+\subtitle{サブタイトル}
+\author{著者}
+\institute[所属短縮系]{所属}
+\date[短縮形]{\today}
+
+\begin{document}
+
+\begin{frame}[plain]
+ \titlepage
+\end{frame}
+
+\begin{frame}[t] % t のほかに c, b が指定可能
+ \frametitle{発表の流れ}
+ \framesubtitle{目次のタイトル}
+ \tableofcontents % 目次に載るのは {,サブ}セクション名。フレームタイトルは関係ない
+\end{frame}
+
+\section[セクション名短縮系1]{セクション名1}
+\subsection[セクション名短縮系1-1]{サブセクション1}
+
+\begin{frame}
+ \frametitle{ブロックのサンプル}
+ \framesubtitle{サブタイトル}
+
+ \begin{block}{見出し}
+  文字の\structure{強調}
+
+  \begin{structureenv}
+   ブロック単位の強調
+  \end{structureenv}
+ \end{block}
+
+ \begin{alertblock}{警告ブロック}
+  文字の\alert{警告}
+
+  \begin{alertenv}
+   ブロック単位の警告
+  \end{alertenv}
+ \end{alertblock}
+
+ \begin{exampleblock}{例示ブロック}
+  ブロック
+ \end{exampleblock}
+
+\end{frame}
+
+\subsection[セクション名短縮系1-2]{サブセクション2}
+\begin{frame}
+ \frametitle{箇条書きのサンプル}
+ \framesubtitle{サブタイトル}
+ \begin{itemize}
+  \item アイテム1
+  \item アイテム2
+ \end{itemize}
+ \pause
+ \begin{enumerate}
+  \item アイテム1
+  \item アイテム2
+ \end{enumerate}
+ \pause
+ \begin{description}
+  \item[項目1] \mbox{} \\
+			 説明1
+  \item[項目2] \mbox{} \\
+			 説明2
+ \end{description}
+\end{frame}
+
+\section[セクション名短縮系2]{セクション名2}
+\begin{frame}
+ \frametitle{2段組サンプル}
+ \framesubtitle{テーブルと図のサンプル}
+ \begin{columns}[onlytextwidth]
+  \begin{column}[T]{0.45\hsize} % T, t c bがある
+   \begin{center}
+	\begin{tblr}{llX} \toprule
+	 \SetCell{c} 項目A & 項目B & 項目C \\ \midrule
+	 A & B & C \\ \hline
+	 A & B & C \\ \hline
+	 A & B & C \\ \bottomrule
+	\end{tblr}
+   \end{center}
+  \end{column}
+  \begin{column}[t]{0.45\hsize} % T, t c bがある
+   \begin{center}
+	\includegraphics[width=\columnwidth,height=5cm,keepaspectratio,scale=0.8]{sample.eps}
+   \end{center}
+  \end{column}
+ \end{columns}
+
+\end{frame}
+
+\section*{セクションX}
+
+\appendix
+% \section{\appendixname}
+\begin{frame}[fragile] % \verbやverbatimを使う場合
+ \frametitle{予備のフレーム}
+ \framesubtitle{サブタイトル}
+ \verb|\appendix|以降のsectionは目次に反映されない。
+
+ \verb|\section*|は目次に反映されない。
+
+\end{frame}
+
+\end{document}
