@@ -235,7 +235,7 @@ yes-or-no-p を (x-popup-dialog t '(prompt ("Yes". t) ("No". nil))) に置き換
         (run-with-idle-timer 60 t 'recentf-save-list)) ;; 一分以上バッファを開いていたら履歴に登録
 
   :config
-  (add-to-list 'recentf-exclude "~/task/.+org")
+  (add-to-list 'recentf-exclude "~/org/task/.+org")
   (add-to-list 'recentf-exclude "~/.mime-example") ;.mime-example を見ているのは誰?
   (add-to-list 'recentf-exclude "~/.emacs.d/diary/diary")
   (add-to-list 'recentf-exclude "~/.password-store")
@@ -1631,10 +1631,10 @@ magit の diff にコマンドを足すものの、magitの差分表示で使う
   (org-imenu-depth 4)                       ;4段目までimenuに載せる
   (org-use-sub-superscripts '{})            ;^上付き _下付き を{}が後続する時に制限する
   (org-export-with-sub-superscripts '{})    ;^上付き _下付き を{}が後続する時に制限する (exportのとき)
-  (org-directory "~/task")
-  (org-agenda-files '("~/task/work.org"
-                      "~/task/home.org"
-                      "~/task/routine.org"))
+  (org-directory "~/org")
+  (org-agenda-files '("~/org/task/work.org"
+                      "~/org/task/home.org"
+                      "~/org/task/routine.org"))
   (org-startup-indented t)                  ;見出しをインデントする
   (org-src-preserve-indentation t)          ;コードブロックで1段インデントしない
   (org-src-window-setup 'current-window)    ;コードブロックの編集を現在のウィンドウで行う
@@ -1651,11 +1651,11 @@ magit の diff にコマンドを足すものの、magitの差分表示で使う
                             ("PENDING"   . (:foreground "dimgrey" :weight bold))
                             ("DONE"      . (:foreground "forestgreen" :weight bold))
                             ("CANCELED"  . shadow)))
-  (org-capture-templates '(("w" "new TODO entry(work.org)" entry (file+headline "work.org" "Inbox") "** TODO %?" :prepend t)
-                           ("h" "new TODO entry(home.org)" entry (file+headline "home.org" "Inbox") "** TODO %?" :prepend t)
-                           ("m" "memo" entry (file "memo.org") "* %U\n%?\n" :prepend t)
-                           ("r" "active region" entry (file "memo.org") "* %? %U\n%i\n" :prepend t)
-                           ("x" "X clipboard" entry (file "memo.org") "* %? %U\n%x\n" :prepend t)))
+  (org-capture-templates '(("w" "new TODO entry(work.org)" entry (file+headline "task/work.org" "Inbox") "** TODO %?" :prepend t)
+                           ("h" "new TODO entry(home.org)" entry (file+headline "task/home.org" "Inbox") "** TODO %?" :prepend t)
+                           ("m" "memo" entry (file "task/memo.org") "* %U\n%?\n" :prepend t)
+                           ("r" "active region" entry (file "task/memo.org") "* %? %U\n%i\n" :prepend t)
+                           ("x" "X clipboard" entry (file "task/memo.org") "* %? %U\n%x\n" :prepend t)))
   (org-stuck-projects '("-memo-someday-routile+LEVEL=2;; " ("TODO" "PROGRESS" "WAITING" "SCHEDULED" "SOMEDAY" "PENDING" "DONE" "CANCELED" ) nil ""))
 
   :bind
