@@ -108,7 +108,7 @@ M-x straight-visit-package-website で パッケージのサイトを開くこ�
 
 use-package には機能名(require, provide の引数)を指定する。一方、straightにはパッケージ名を指定する必要がある。両者が一致しない場合はstraightの引数で指定する。
 
-:defer がセットされているパッケージは、ロードと :config の実行が遅延する。:defer が暗黙的にセットされるのは :command, :auto-load, :bind, :mode, :interpreter, :magic, :magic-fallback, :hook。
+:defer がセットされているパッケージは、ロードと :config の実行が遅延する。:defer が暗黙的にセットされるのは :commands, :auto-load, :bind, :mode, :interpreter, :magic, :magic-fallback, :hook。
 
 空行をいれる箇所も含め、概ね以下の順番で記載する。
 
@@ -123,7 +123,7 @@ use-package には機能名(require, provide の引数)を指定する。一方�
 
 - :preface :: パッケージのロードとは独立して実行する処理
 
-- :command :: autoload を行うコマンドを指定する
+- :commands :: autoload を行うコマンドを指定する
 - :autoload :: autoload を行う関数を指定する
 
 - :init :: パッケージのロードを行いその直後に実行する処理
@@ -136,9 +136,9 @@ use-package には機能名(require, provide の引数)を指定する。一方�
   - キーマップをバインドするための :bind-keymap というバリエーションもある
   - :map モディファイア をつかって ローカルキーマップの bind を指定することもできる。ただし、パッケージロードされた時点で存在するものに限る。
   - repeat-mode 用のバインドを :repeat-map を使って指定できる(らしいんだけど、うまく動かせていない)
-- :mode, :interpreter :: auto-mode-alist と interpreter-mode-alist を設定する。対象は暗黙的に:commandに追加される
+- :mode, :interpreter :: auto-mode-alist と interpreter-mode-alist を設定する。対象は暗黙的に:commandsに追加される
 - :magic, :magic-fallback :: :modeがファイル名を見るように、ファイルの内容からモードを選択する。:magic-fallbackは検出のタイミングが遅いはず
-- :hook :: add-hook を行う。 -hook のプレフィックスは不要。暗黙的に:commandに追加される
+- :hook :: add-hook を行う。 -hook のプレフィックスは不要。暗黙的に:commandsに追加される
 
 - :config :: パッケージのロード後に行われる。 :config に use-packageをネストさせるのは止める
 
