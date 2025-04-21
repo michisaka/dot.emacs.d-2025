@@ -921,10 +921,7 @@ cape の cape-dabbrev は調整が必要そう。
                             (interactive "p")
                             (cond ((= arg 4) (consult-imenu-multi))
                                   (t (consult-imenu)))))
-         ("M-g o" . (lambda (arg)                                             ;"M-g o"
-                      (interactive "p")
-                      (cond ((= arg 4) (consult-org-heading))
-                            (t (consult-outline)))))
+         ("M-g o" . consult-outline)                                          ;"M-g o"
 
          ;; 検索 M-s
          ("M-s f" . consult-fd)                                               ;"M-s f"
@@ -1642,14 +1639,23 @@ magit の diff にコマンドを足すものの、magitの差分表示で使う
     (add-hook 'before-save-hook 'org-agenda-to-appt t))
 
   :custom
+  (org-startup-with-link-previews t)        ;インラインイメージを表示する
+  (org-startup-indented t)                  ;見出しをインデントする
   (org-imenu-depth 4)                       ;4段目までimenuに載せる
+
+  (org-outline-path-complete-in-steps nil)
+  (org-refile-use-outline-path 'file)
+  (org-refile-targets '((org-files-list :maxlevel . 1) ; 開いている org ファイル
+                        (org-agenda-files :maxlevel . 3)
+                        (org-journal--get-entry-path :maxlevel . 1)))
+
   (org-use-sub-superscripts '{})            ;^上付き _下付き を{}が後続する時に制限する
   (org-export-with-sub-superscripts '{})    ;^上付き _下付き を{}が後続する時に制限する (exportのとき)
   (org-directory "~/org")
   (org-agenda-files '("~/org/task/work.org"
                       "~/org/task/home.org"
+                      "~/org/task/bucketlist.org"
                       "~/org/task/routine.org"))
-  (org-startup-indented t)                  ;見出しをインデントする
   (org-src-preserve-indentation t)          ;コードブロックで1段インデントしない
   (org-src-window-setup 'current-window)    ;コードブロックの編集を現在のウィンドウで行う
   (org-clock-out-remove-zero-time-clocks t) ;一分未満を計時しない
@@ -1665,17 +1671,20 @@ magit の diff にコマンドを足すものの、magitの差分表示で使う
                             ("PENDING"   . (:foreground "dimgrey" :weight bold))
                             ("DONE"      . (:foreground "forestgreen" :weight bold))
                             ("CANCELED"  . shadow)))
-  (org-capture-templates '(("w" "new TODO entry(work.org)" entry (file+headline "task/work.org" "Inbox") "** TODO %?" :prepend t)
-                           ("h" "new TODO entry(home.org)" entry (file+headline "task/home.org" "Inbox") "** TODO %?" :prepend t)
-                           ("m" "memo" entry (file "task/memo.org") "* %U\n%?\n" :prepend t)
-                           ("r" "active region" entry (file "task/memo.org") "* %? %U\n%i\n" :prepend t)
-                           ("x" "X clipboard" entry (file "task/memo.org") "* %? %U\n%x\n" :prepend t)))
+  (org-capture-templates '(("w" "new TODO entry(work.org)" entry (file+headline "task/work.org" "Inbox") "** TODO %?" :prepend t :unnarrowed t :empty-lines-after 1)
+                           ("h" "new TODO entry(home.org)" entry (file+headline "task/home.org" "Inbox") "** TODO %?" :prepend t :unnarrowed t :empty-lines-after 1)
+                           ("p" "new purchase entry" entry (file+headline "task/home.org" "買い物") "** TODO %:description%?\n[[%:link][Amazon]]" :prepend t :unnarrowed t :empty-lines-after 1)
+                           ("m" "misc" entry (file "task/misc.org") "* %U\n%?\n" :prepend t)
+                           ("r" "active region" entry (file "task/misc.org") "* %? %U\n%i\n" :prepend t)
+                           ("x" "X clipboard" entry (file "task/misc.org") "* %? %U\n%x\n" :prepend t)))
   (org-stuck-projects '("-memo-someday-routile+LEVEL=2;; " ("TODO" "PROGRESS" "WAITING" "SCHEDULED" "SOMEDAY" "PENDING" "DONE" "CANCELED" ) nil ""))
 
   :bind
   ("C-c o a" . org-agenda)
   ("C-c o c" . org-capture)
   ("C-c o s" . org-store-link)
+  (:map org-mode-map
+        ("M-g o" . consult-org-heading))
   :hook
   (org-mode-hook . org-hode-hooks)    ;保存時にorg-agenda-to-apptを実行
 
