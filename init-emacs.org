@@ -27,6 +27,7 @@
   - git
   - pass
   - tmux
+  - xclip
 
 * org babel tangle
 
@@ -1630,6 +1631,9 @@ magit の diff にコマンドを足すものの、magitの差分表示で使う
 
 ** Org Mode
 
+org-download は 画像のURLをコピーして org-download-yank で画像を取得できる。
+ちなみに、dired で "0 w" とするとそのファイルのリンクを取得できる。
+
 #+begin_src emacs-lisp
 (use-package org
   :straight t
@@ -1706,6 +1710,17 @@ magit の diff にコマンドを足すものの、magitの差分表示で使う
 
   :config
   (require 'ol-wl))
+
+(use-package org-download
+  :straight t
+
+  :init
+  (require 'org-download)
+
+  :custom
+  (org-download-method 'directory)
+  (org-download-image-dir "Attachments")
+  (org-download-heading-lvl 0))
 #+end_src
 
 ** Wanderlust
