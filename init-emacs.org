@@ -1,3 +1,6 @@
+:PROPERTIES:
+:ID:       90690d70-1051-490c-9a50-8b7ecfbd819b
+:END:
 #+TITLE: emacs init.el 2025
 
 * セットアップ時にやること
@@ -240,6 +243,7 @@ yes-or-no-p を (x-popup-dialog t '(prompt ("Yes". t) ("No". nil))) に置き換
   (add-to-list 'recentf-exclude "~/.mime-example") ;.mime-example を見ているのは誰?
   (add-to-list 'recentf-exclude "~/.emacs.d/diary/diary")
   (add-to-list 'recentf-exclude "~/.password-store")
+  (add-to-list 'recentf-exclude "~/org/notes/computing/init-emacs.org")
   (recentf-mode))
 
 (use-package desktop ;デスクトップの状態を保存する
@@ -1631,6 +1635,64 @@ magit の diff にコマンドを足すものの、magitの差分表示で使う
 
 ** Org Mode
 
+*** ブックマークレット
+以下のコードをブックマークレットとして登録。org-roamと共用。
+ブックマークレットの生成は [[https://caiorss.github.io/bookmarklet-maker/][Bookmarklet Maker]] を利用。
+
+- capture, roam-ref
+#+begin_src js :tangle no
+let ref = location.href;
+let title = document.title;
+let body = window.getSelection();
+
+const twitterPattern = new RegExp("https://x.com/(\w+)/status/(\d+)");
+
+let template = "r";
+let protocol = "roam-ref";
+if (ref.startsWith("https://www.amazon.co.jp/")) {
+  protocol = "capture"
+  template = "p";
+  ref = "https://www.amazon.co.jp/" + ref.match(/dp\/\d+/);
+} else if (ref.startsWith("https://booklog.jp/item/1")) {
+  template = "b";
+  ref = ref.split('?')[0];
+  title = title.substring(0, title.lastIndexOf('|')).trim();
+  body = ref.split('/').at(-1)
+} else if (ref.startsWith("https://x.com/")) {
+  let matchResult = ref.match(/https:\/\/x.com\/(\w+)\/status\/(\d+)/)
+  if (matchResult) {
+    template = "t";
+    body = title
+    title = matchResult[1] + "-" + matchResult[2]
+  }
+}
+
+if (protocol === "capture") {
+  location.href = "org-protocol://capture?" +
+    new URLSearchParams({
+      template: template,
+      url: ref,
+      title: title,
+      body: body
+    });
+} else {
+  location.href = "org-protocol://roam-ref?" +
+    new URLSearchParams({
+      template: template,
+      ref: ref,
+      title: title,
+      body: body
+    });
+}
+#+end_src
+
+- store-link
+#+begin_src js
+location.href='org-protocol://store-link?%27 + new URLSearchParams({url:location.href, title:document.title});
+#+end_src
+
+*** org-mode
+
 org-download は 画像のURLをコピーして org-download-yank で画像を取得できる。
 ちなみに、dired で "0 w" とするとそのファイルのリンクを取得できる。
 
@@ -1727,6 +1789,121 @@ org-download は 画像のURLをコピーして org-download-yank で画像を�
   (org-download-method 'directory)
   (org-download-image-dir "Attachments")
   (org-download-heading-lvl 0))
+#+end_src
+
+*** org-roam
+
+- 気になっているもの
+  - [[https://github.com/tefkah/org-roam-timestamps][org-roam-timestamps]]
+
+#+begin_src emacs-lisp
+(use-package org-roam
+  :straight t
+  :demand t
+  :after org
+
+  :custom
+  (org-roam-directory "~/org/notes")
+  (org-roam-list-files-commands `(rg))
+
+  (org-roam-capture-templates '(
+    ("d" "default" plain "%?" :target (file+head "%^{category|fleeting|computing}/%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}") :unnarrowed t)))
+
+  (org-roam-capture-ref-templates '(
+    ("r" "ref" plain "%?" :target (file+head "literature/web-articles/${slug}.org" "#+title: ${title}") :unnarrowed t)
+    ("b" "books" plain "* まとめ\n* 書いてあったこと\n%?\n* 読んで思ったこと\n" :target (file+head "literature/books/%i-${slug}.org" ":PROPERTIES:\n:ISBN: %i\n:END:\n#+title: ${title}\n") :unnarrowed t)
+    ("t" "twitter" plain "%i\n\n%?" :target (file+head "literature/twitter/${slug}.org" "#+title: ${title}") :unnarrowed t)))
+
+  :bind
+  ("<f6> r" . org-roam-buffer-toggle)
+  ("C-c o C" . org-roam-capture)
+  ("C-c o r f" . org-roam-node-find)
+  (:map org-mode-map
+        ("C-c o i d" . org-id-get-create)
+        ("C-c o r i" . org-roam-node-insert)
+        ("C-c o r a" . org-roam-alias-add)
+        ("C-c o r A" . org-roam-alias-remove)
+        ("C-c o r r" . org-roam-ref-add)
+        ("C-c o r R" . org-roam-ref-remove))
+
+  :config
+  (org-roam-db-autosync-mode)
+  (add-to-list 'display-buffer-alist
+             '("\\*org-roam\\*"
+               (display-buffer-in-direction)
+               (direction . right)
+               (window-width . 0.33)
+               (window-height . fit-window-to-buffer)))
+
+  (cl-defmethod org-roam-node-directories ((node org-roam-node))
+    (if-let ((dirs (file-name-directory (file-relative-name (abbreviate-file-name (org-roam-node-file node)) org-roam-directory))))
+        ;; (format "(%s)" (car (last (split-string (directory-file-name dirs) "/"))))
+        (format "(%s)" (car (split-string (directory-file-name dirs) "/")))
+      ""))
+
+  (cl-defmethod org-roam-node-hierarchy ((node org-roam-node))
+    (let ((level (org-roam-node-level node)))
+      (concat
+       (when (> level 0) (concat (org-roam-node-file-title node) " > "))
+       (when (> level 1) (concat (string-join (org-roam-node-olp node) " > ") " > "))
+       (org-roam-node-title node))))
+
+  (cl-defmethod org-roam-node-backlinkscount ((node org-roam-node))
+    (let* ((count (caar (org-roam-db-query
+                         [:select (funcall count source)
+                                  :from links
+                                  :where (= dest $s1)
+                                  :and (= type "id")]
+                         (org-roam-node-id node)))))
+      (format "[%d]" count)))
+
+  (setq org-roam-node-display-template (concat "${directories:15} ${hierarchy:*}" (propertize "${tags:20} ${backlinkscount:6}" 'face 'org-tag)))
+
+  (require 'org-roam-protocol)
+  (require 'org-roam-export))
+
+(use-package consult-org-roam
+  :straight t
+  :after org-roam straight
+
+  :init
+  (require 'consult-org-roam)
+  (consult-org-roam-mode 1)
+
+  :custom
+  (consult-org-roam-grep-func #'consult-ripgrep) ; Use `ripgrep' for searching with `consult-org-roam-search'
+  (consult-org-roam-buffer-narrow-key ?r) ; Configure a custom narrow key for `consult-buffer'
+  (consult-org-roam-buffer-after-buffers t) ; Display org-roam buffers right after non-org-roam buffers in consult-buffer (and not down at the bottom)
+
+  :bind
+  ;; ("C-c n e" . consult-org-roam-file-find)
+  ;; ("C-c n b" . consult-org-roam-backlinks)
+  ;; ("C-c n B" . consult-org-roam-backlinks-recursive)
+  ;; ("C-c n l" . consult-org-roam-forward-links)
+  ;; ("C-c n r" . consult-org-roam-search)
+  ("C-c o r f" . org-roam-node-find)
+  (:map org-mode-map
+        ("C-c o r i" . org-roam-node-insert))
+
+  :config
+  ;; Eventually suppress previewing for certain functions
+  (consult-customize
+   consult-org-roam-forward-links
+   :preview-key "M-."))
+
+(use-package org-roam-ui
+  :straight t
+  :after org-roam
+
+  ;; normally we'd recommend hooking orui after org-roam, but since org-roam does not have
+  ;; a hookable mode anymore, you're advised to pick something yourself
+  ;; if you don't care about startup time, use
+  ;; :hook (after-init . org-roam-ui-mode)
+  :custom
+  (org-roam-ui-sync-theme t)
+  (org-roam-ui-follow t)
+  (org-roam-ui-update-on-save t)
+  (org-roam-ui-open-on-start t))
 #+end_src
 
 ** Wanderlust

@@ -1,6 +1,7 @@
 /.cache/
 /.emacs.desktop*
 /.lookup-cache-*.el
+/.org-id-locations
 /auto-save-list/
 /backup/
 /bookmarks
@@ -13,6 +14,7 @@
 /info/*
 !/info/.gitkeep
 /init-*.el
+/org-roam.db
 /places
 /projects
 /recentf
