@@ -1844,7 +1844,8 @@ org-download は 画像のURLをコピーして org-download-yank で画像を�
   (org-roam-list-files-commands `(rg))
 
   (org-roam-capture-templates '(
-    ("d" "default" plain "%?" :target (file+head "%^{category|fleeting|computing}/%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}") :unnarrowed t)))
+    ("f" "Fleeting Notes" entry "* ${title}%?\n%i" :target (file+head "fleeting/note.org" "#+title: Fleeting Notes") :unnarrowed t)
+    ("p" "Permanent Notes" plain "%i%?" :target (file+head "${directory}/%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}") :unnarrowed t)))
 
   (org-roam-capture-ref-templates '(
     ("r" "ref" plain "%?" :target (file+head "literature/web-articles/${slug}.org" "#+title: ${title}") :unnarrowed t)
@@ -1872,11 +1873,17 @@ org-download は 画像のURLをコピーして org-download-yank で画像を�
                (window-width . 0.33)
                (window-height . fit-window-to-buffer)))
 
-  (cl-defmethod org-roam-node-directories ((node org-roam-node))
-    (if-let ((dirs (file-name-directory (file-relative-name (abbreviate-file-name (org-roam-node-file node)) org-roam-directory))))
-        ;; (format "(%s)" (car (last (split-string (directory-file-name dirs) "/"))))
-        (format "(%s)" (car (split-string (directory-file-name dirs) "/")))
-      ""))
+  (cl-defmethod org-roam-node-directory ((node org-roam-node))
+    (let ((file (org-roam-node-file node)))
+      (if file (car (split-string (file-relative-name (abbreviate-file-name file) org-roam-directory) "/"))
+        (when org-roam-capture--node
+          (setq sub-directories
+                (delete nil (mapcar
+                             (lambda (x)
+                               (if (file-directory-p x) (car (split-string (file-relative-name (abbreviate-file-name x) org-roam-directory) "/"))))
+                             (directory-files org-roam-directory t "^[^.]"))))
+          (setq directory (completing-read "Directory: " sub-directories nil 'confirm)))
+        directory)))
 
   (cl-defmethod org-roam-node-hierarchy ((node org-roam-node))
     (let ((level (org-roam-node-level node)))
@@ -1894,7 +1901,7 @@ org-download は 画像のURLをコピーして org-download-yank で画像を�
                          (org-roam-node-id node)))))
       (format "[%d]" count)))
 
-  (setq org-roam-node-display-template (concat "${directories:15} ${hierarchy:*}" (propertize "${tags:20} ${backlinkscount:6}" 'face 'org-tag)))
+  (setq org-roam-node-display-template (concat "${directory:15} ${hierarchy:*}" (propertize "${tags:20} ${backlinkscount:6}" 'face 'org-tag)))
 
   (require 'org-roam-protocol)
   (require 'org-roam-export))
