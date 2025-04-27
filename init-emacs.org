@@ -1791,6 +1791,43 @@ org-download は 画像のURLをコピーして org-download-yank で画像を�
   (org-download-heading-lvl 0))
 #+end_src
 
+*** org-journal
+
+- Journal モード内のキーバインド
+  - C-c o j f :: org-journal-next-entry
+  - C-c o j b :: org-journal-previous-entry
+  - C-c o j j :: org-journal-new-entry
+  - C-c o j s :: org-journal-search
+  - C-c C-f   :: org-forward-heading-same-level
+  - C-c C-b   :: org-backward-heading-same-level
+  - C-c C-j   :: insert a new entry into the current journal file
+  - C-c C-s   :: search the journal for a string.
+
+#+begin_src emacs-lisp
+(use-package org-journal
+  :straight t
+  :demand t
+
+  :init
+  (setq org-journal-prefix-key "C-c o j")
+
+  :custom
+  (org-journal-dir "~/org/journal/")
+  (org-journal-file-type 'weekly)
+  (org-extend-today-until 4)
+  (org-use-effective-time t)
+  (org-journal-file-format "%Y%m%d.org")
+  (org-journal-file-header "#+TITLE: Weekly Journal (%Y %V)\n#+FILETAGS: :journal:\n")
+  (org-journal-date-format "%F (%a)")
+  (org-journal-time-format "%R- ")
+  (org-journal-hide-entries-p t)
+  (org-journal-enable-agenda-integration t)
+  (org-journal-carryover-items "TODO={TODO\\|PROGRESS\\|WAITING\\|SCHEDULED\\|SOMEDAY}")
+
+  :bind
+  ("C-c o j" . org-journal-new-entry))
+#+end_src
+
 *** org-roam
 
 - 気になっているもの
