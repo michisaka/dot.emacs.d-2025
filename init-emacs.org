@@ -538,7 +538,7 @@ Wanderlust でメールの印刷ができなかった。Subject:に日本語が�
   :demand t
 
   :custom
-  (tab-bar-select-tab-modifiers '(meta))
+  ;; (tab-bar-select-tab-modifiers '(meta)) ;magit のレベルごとの展開 M-{N} と被るので無効に
   (tab-bar-tab-hints t)
   (tab-bar-format '(tab-bar-format-tabs-groups))
   (tab-bar-new-tab-choice "*scratch*")
