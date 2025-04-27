@@ -1711,6 +1711,12 @@ org-download は 画像のURLをコピーして org-download-yank で画像を�
   :config
   (require 'ol-wl))
 
+(use-package org-web-tools
+  :straight t
+
+  :custom
+  (org-web-tools-pandoc-sleep-time 1.0))
+
 (use-package org-download
   :straight t
 
