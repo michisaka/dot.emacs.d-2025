@@ -2194,6 +2194,9 @@ init.elと同じディレクトリにある init-ホスト名.el をロードす
 (setq init-host-el (locate-user-emacs-file (concat "init-" (car (split-string system-name "\\.")) ".el")))
 (if (file-exists-p init-host-el)
     (load-file init-host-el))
+
+(if (file-exists-p (locate-user-emacs-file custom-file))
+    (load-file (locate-user-emacs-file custom-file)))
 #+end_src
 
 

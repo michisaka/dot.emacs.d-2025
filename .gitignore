@@ -5,6 +5,7 @@
 /auto-save-list/
 /backup/
 /bookmarks
+/custom.el
 /diary/*
 !/diary/diary
 /elisp/*
