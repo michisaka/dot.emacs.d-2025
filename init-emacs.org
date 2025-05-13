@@ -711,6 +711,19 @@ tempel-path 以外は一旦ドキュメントのままのインストール。
           (cdr args)))
   (advice-add #'completing-read-multiple :filter-args #'crm-indicator)
 
+  (defun vertico-toggle-sort ()
+    (interactive)
+    (setq-local vertico-sort-override-function
+                (let ((sort-by (completing-read "vertico-sort-override-function: " '("alphabetically" "original" "default" "no sort") nil t nil t "default")))
+                  (cond
+                   ((string-equal sort-by "alphabetically") #'vertico-sort-alpha)
+                   ((string-equal sort-by "original") #'identity)
+                   ((string-equal sort-by "default")  #'vertico-sort-history-length-alpha)
+                   ((string-equal sort-by "no sort") nil))
+                  )
+                vertico--input t)
+    (message "function: %s "vertico-sort-override-function))
+
   :init
   (vertico-mode)
 
@@ -724,6 +737,7 @@ tempel-path 以外は一旦ドキュメントのままのインストール。
   :bind
   (:map vertico-map
         ;; ("C-d" . vertico-directory-delete-char)
+        ("M-S" . vertico-toggle-sort)
         ("C-l" . vertico-directory-up)))
 
 (use-package nerd-icons-completion
