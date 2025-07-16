@@ -1082,7 +1082,7 @@ https://archlinux.org/packages/extra/x86_64/tree-sitter/
      (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
      (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
      (yaml "https://github.com/ikatyang/tree-sitter-yaml")
-     )
+     (nix "https://github.com/nix-community/tree-sitter-nix"))
    )
 
 (mapc #'treesit-install-language-grammar (mapcar #'car treesit-language-source-alist))
@@ -1167,6 +1167,11 @@ https://yusukebe.com/posts/2021/gh-markdown-preview/
 
 (use-package mermaid-mode
   :straight t)
+
+(use-package nix-ts-mode
+  :straight t
+
+  :mode "\\.nix\\'")
 #+end_src
 
 ** 野鳥
