@@ -1791,6 +1791,7 @@ org-link-completion により、 [[ でリンク関係の補完が効くよう�
   (org-src-preserve-indentation t)          ;コードブロックで1段インデントしない
   (org-src-window-setup 'current-window)    ;コードブロックの編集を現在のウィンドウで行う
   (org-clock-out-remove-zero-time-clocks t) ;一分未満を計時しない
+  (org-clock-clocked-in-display 'frame-title) ;計時の内容をフレームタイトルに表示する
   (org-log-done 'time)                      ;DONEに遷移したとき時刻を記録する
   (org-agenda-include-diary t)              ;アジェンダにdiaryの内容を含める
   (org-agenda-start-on-weekday 1)           ;週のアジェンダを月曜始まりにする
