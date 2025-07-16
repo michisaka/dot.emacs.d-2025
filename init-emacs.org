@@ -228,10 +228,54 @@ yes-or-no-p を (x-popup-dialog t '(prompt ("Yes". t) ("No". nil))) に置き換
 
 * 履歴
 
+ウィンドウ構成をレジスタ保存すると desktop で復帰後にレジスタが動かなくなるためactivitiesを使う。
+タブグループごと保存してくれるともっと便利 [[https://github.com/alphapapa/activities.el/issues/140][Interaction between activities and tab-groups · Issue #140]] の推移は追っておきたい。
+
 #+begin_src emacs-lisp
 (setq history-delete-duplicates t)     ;重複するミニバッファヒストリを削除する
 (savehist-mode t)                      ;ミニバッファの履歴を保存する
 (save-place-mode +1)                   ;カーソル位置を保存する
+
+(use-package activities
+  :straight t
+
+  :init
+  (activities-mode)
+  (activities-tabs-mode)
+  ;; Prevent `edebug' default bindings from interfering.
+  ;; (setq edebug-inhibit-emacs-lisp-mode-bindings t)
+
+  :bind ;サイトで提案されている C-x C-a は gudが使っている。
+  (("C-c a C-n" . activities-new)
+   ("C-c a C-d" . activities-define)
+   ("C-c a C-a" . activities-resume)
+   ("C-c a C-s" . activities-suspend)
+   ("C-c a C-k" . activities-kill)
+   ("C-c a RET" . activities-switch)
+   ("C-c a b" . activities-switch-buffer)
+   ("C-c a g" . activities-revert)
+   ("C-c a l" . activities-list))
+  :config
+  (with-eval-after-load 'consult
+    (defun activities-local-buffer-p (buffer)
+      "Returns non-nil if BUFFER is present in `activities-current'."
+      (when (activities-current)
+        (memq buffer (activities-tabs--tab-parameter 'activities-buffer-list (activities-tabs--tab (activities-current))))))
+
+    (defvar my-consult--source-activities-buffer ;activitiesのバッファのみを絞り込む
+      `(:name "Activities Buffers"
+              :narrow   ?a
+              :category buffer
+              :face     consult-buffer
+              :history  buffer-name-history
+              :state    ,#'consult--buffer-state
+              :default  t
+              :items ,(lambda () (consult--buffer-query
+                                  :predicate #'activities-local-buffer-p
+                                  :sort 'visibility
+                                  :as #'buffer-name)))
+      "Activities local buffers candidate source for `consult-buffer'.")
+    (add-to-list 'consult-buffer-sources 'my-consult--source-activities-buffer)))
 
 (use-package recentf-ext
   :straight t
@@ -250,7 +294,10 @@ yes-or-no-p を (x-popup-dialog t '(prompt ("Yes". t) ("No". nil))) に置き換
 
 (use-package desktop ;デスクトップの状態を保存する
   :init
-  (desktop-save-mode t))
+  (desktop-save-mode t)
+
+  :hook
+  (desktop-after-read . (lambda() (setq register-alist nil)))) ; ウィンドウ構成がレジスタに残っていると、レジスタ全般が動かないので起動時にレジスタを消す
 #+end_src
 
 
@@ -578,6 +625,14 @@ Wanderlust でメールの印刷ができなかった。Subject:に日本語が�
   :config
   (tab-bar-mode)
   (tab-bar-history-mode))
+
+(use-package project-tab-groups
+  :straight t
+
+  :after project
+
+  :config
+  (project-tab-groups-mode 1))
 #+end_src
 
 ** ace-window

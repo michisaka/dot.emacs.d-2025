@@ -16,6 +16,7 @@
 !/info/.gitkeep
 /init-*.el
 /org-roam.db
+/persist
 /places
 /projects
 /recentf
