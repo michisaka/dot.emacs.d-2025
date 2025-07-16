@@ -31,6 +31,7 @@
   - pass
   - tmux
   - xclip
+  - mermaid-cli
 
 * org babel tangle
 
@@ -1163,6 +1164,9 @@ https://yusukebe.com/posts/2021/gh-markdown-preview/
 (use-package css-mode
   :custom
   (css-indent-offset 2))
+
+(use-package mermaid-mode
+  :straight t)
 #+end_src
 
 ** 野鳥
@@ -1830,6 +1834,13 @@ org-download は 画像のURLをコピーして org-download-yank で画像を�
   :config
   (require 'ol-wl))
 
+(use-package ob-mermaid
+  :straight t
+
+  :config
+  (setq ob-mermaid-cli-path "~/bin/mmdc")
+  (require 'ob-mermaid))
+
 (use-package org-web-tools
   :straight t
 
@@ -1846,6 +1857,12 @@ org-download は 画像のURLをコピーして org-download-yank で画像を�
   (org-download-method 'directory)
   (org-download-image-dir "Attachments")
   (org-download-heading-lvl 0))
+
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((mermaid . t)
+;   (gnuplot . t)
+   (emacs-lisp . t)))
 #+end_src
 
 *** org-journal
