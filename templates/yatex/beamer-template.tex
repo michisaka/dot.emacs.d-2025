@@ -3,21 +3,52 @@
 \usepackage{graphicx}
 \usepackage{tabularray}
 \UseTblrLibrary{booktabs}
+\usepackage{luatexja}
 \usepackage[no-math,deluxe]{luatexja-preset}
 \renewcommand{\kanjifamilydefault}{\gtdefault}
 \renewcommand{\emph}[1]{{\upshape\bfseries #1}}
-\usetheme{Boadilla}
-% \usetheme{metropolis}
+
+% \usetheme{Boadilla}
+\usetheme[block=fill,numbering=fraction]{metropolis} % block=fill でブロックに背景色がつく, numbering=fraction でページ番号を 現ページ/総ページ に
+
 \setbeamertemplate{navigation symbols}{}
 \setbeamertemplate{enumerate item}[default]
 \setbeamertemplate{itemize item}[default]
 \setbeamertemplate{section in toc}[sections numbered]
 \setbeamertemplate{subsection in toc}{\hspace{1.2em}{\rule[0.3ex]{3pt}{3pt}}~\inserttocsubsection\par}
+\setbeamertemplate{blocks}[rounded]
+
+% \setbeamercovered{transparent} %隠してるアイテムを半透明で表示
+
+\definecolor{ConceptColor}{HTML}{e40019}
+\definecolor{AccentColor}{HTML}{5082c8}
+\definecolor{BackgroundGrayColor}{HTML}{898989}
+\definecolor{TextBlackColor}{HTML}{333333}
+
+\setbeamercolor{frametitle}{bg=TextBlackColor}
+\setbeamercolor{normal text}{fg=TextBlackColor}
+\setbeamercolor{title separator}{fg=ConceptColor}
+\setbeamercolor{progress bar in section page}{fg=ConceptColor,bg=BackgroundGrayColor}
+
+\setbeamercolor{structure}{fg=AccentColor}
+\setbeamercolor{alerted text}{fg=ConceptColor}
+\setbeamercolor{example text}{fg=AccentColor}
+
+\setbeamercolor{block title}{fg=white,bg=BackgroundGrayColor}
+\setbeamercolor{block title alerted}{fg=white,bg=ConceptColor}
+\setbeamercolor{block title example}{fg=white,bg=AccentColor}
+
+\setbeamercolor{block body}{bg=BackgroundGrayColor!20}
+\setbeamercolor{block body alerted}{bg=ConceptColor!20}
+\setbeamercolor{block body example}{bg=AccentColor!20}
+
+\setbeamercolor{item}{fg=TextBlackColor}
+\setbeamercolor{section in toc}{fg=TextBlackColor}
 
 \title[短縮形]{ドキュメントタイトル}
 \subtitle{サブタイトル}
 \author{著者}
-\institute[所属短縮系]{所属}
+\institute[所属略称]{所属}
 \date[短縮形]{\today}
 
 \begin{document}
@@ -32,8 +63,8 @@
  \tableofcontents % 目次に載るのは {,サブ}セクション名。フレームタイトルは関係ない
 \end{frame}
 
-\section[セクション名短縮系1]{セクション名1}
-\subsection[セクション名短縮系1-1]{サブセクション1}
+\section[セクション名1 短縮形]{セクション名1}
+\subsection[セクション名1-1 短縮形]{サブセクション1}
 
 \begin{frame}
  \frametitle{ブロックのサンプル}
@@ -61,7 +92,7 @@
 
 \end{frame}
 
-\subsection[セクション名短縮系1-2]{サブセクション2}
+\subsection[セクション名1-2 短縮形]{サブセクション2}
 \begin{frame}
  \frametitle{箇条書きのサンプル}
  \framesubtitle{サブタイトル}
@@ -83,7 +114,7 @@
  \end{description}
 \end{frame}
 
-\section[セクション名短縮系2]{セクション名2}
+\section[セクション名2 短縮形]{セクション名2}
 \begin{frame}
  \frametitle{2段組サンプル}
  \framesubtitle{テーブルと図のサンプル}
