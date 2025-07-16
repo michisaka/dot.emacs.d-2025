@@ -1810,6 +1810,7 @@ org-link-completion により、 [[ でリンク関係の補完が効くよう�
                            ("r" "active region" entry (file "task/misc.org") "* %? %U\n%i\n" :prepend t)
                            ("x" "X clipboard" entry (file "task/misc.org") "* %? %U\n%x\n" :prepend t)))
   (org-stuck-projects '("-memo-someday-routile+LEVEL=2;; " ("TODO" "PROGRESS" "WAITING" "SCHEDULED" "SOMEDAY" "PENDING" "DONE" "CANCELED" ) nil ""))
+  (org-latex-compiler "lualatex")
 
   :bind
   ("C-c o a" . org-agenda)
@@ -1831,7 +1832,8 @@ org-link-completion により、 [[ でリンク関係の補完が効くよう�
                              "DONE(d)"
                              "PENDING"
                              "CANCELED(c)")))
-  (require 'org-habit))
+  (require 'org-habit)
+  (require 'ox-beamer))
 
 (use-package org-contrib
   :straight t
