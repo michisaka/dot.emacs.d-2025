@@ -191,7 +191,9 @@ Warning: exec-path-from-shell execution took 868ms. See the README for tips on r
   :straight t
 
   :config
-  (exec-path-from-shell-initialize))
+  (exec-path-from-shell-copy-envs '("PATH" "KUBECONFIG"))
+  (exec-path-from-shell-initialize)
+  )
 #+end_src
 
 
