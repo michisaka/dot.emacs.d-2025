@@ -1757,6 +1757,11 @@ location.href='org-protocol://store-link?%27 + new URLSearchParams({url:location
 org-download は 画像のURLをコピーして org-download-yank で画像を取得できる。
 ちなみに、dired で "0 w" とするとそのファイルのリンクを取得できる。
 
+インラインイメージの表示非表示の変更は org-link-preview (C-c C-x C-v) もしくは org-link-preview-region
+
+org-link-completion により、 [[ でリンク関係の補完が効くようになる。([ では効かない)
+ただ、agenda ファイルの見出しへのリンクなら直接ファイルをvisitして C-c o s(org-store-link) したほうが早いかもしれない。
+
 #+begin_src emacs-lisp
 (use-package org
   :straight t
@@ -1833,6 +1838,13 @@ org-download は 画像のURLをコピーして org-download-yank で画像を�
 
   :config
   (require 'ol-wl))
+
+(use-package org-link-completion
+  :straight (org-link-completion :host github :repo "misohena/org-link-completion")
+  :after org
+
+  :config
+  (org-link-completion-setup))
 
 (use-package ob-mermaid
   :straight t
