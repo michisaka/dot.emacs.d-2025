@@ -1254,8 +1254,8 @@ flymake-posframe は eldoc-box-help-at-point より前面に表示されるの�
         ("C-c f f" . consult-flymake)
         ("C-c f l" . flymake-show-buffer-diagnostics)
         ("C-c f L" . flymake-show-project-diagnostics)
-        ("C-c f n" . flymake-got-next-error)
-        ("C-c f p" . flymake-got-prev-error)
+        ("C-c f n" . flymake-goto-next-error)
+        ("C-c f p" . flymake-goto-prev-error)
         ("C-c c e" . consult-compile-error)
         )
   :hook
