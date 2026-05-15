@@ -1970,8 +1970,8 @@ org-link-completion により、 [[ でリンク関係の補完が効くよう�
   (org-roam-list-files-commands `(rg))
 
   (org-roam-capture-templates '(
-    ("f" "Fleeting Notes" entry "* ${title}%?\n%i" :target (file+head "fleeting/note.org" "#+title: Fleeting Notes") :unnarrowed t)
-    ("p" "Permanent Notes" plain "%i%?" :target (file+head "${directory}/%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}") :unnarrowed t)))
+    ("f" "Fleeting Notes" entry "* ${title} %U\n%i%?" :target (file+head "fleeting/note.org" "#+title: Fleeting Notes") :unnarrowed t :prepend t)
+    ("p" "Permanent Notes" plain "%i%?\n" :target (file+head "${directory}/%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}") :unnarrowed t)))
 
   (org-roam-capture-ref-templates '(
     ("r" "ref" plain "%?" :target (file+head "literature/web-articles/${slug}.org" "#+title: ${title}") :unnarrowed t)
