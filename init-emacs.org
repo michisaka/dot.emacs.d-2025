@@ -464,10 +464,30 @@ indent-tabs-mode の時にこそ indentation を当ててほしいんだけど�
 (use-package mozc
   :straight t
 
+  :init
+  (defun check-mozc-and-set-cursor-color ()
+    (if mozc-mode
+        (set-cursor-color "OliveDrab4")
+      (set-cursor-color (face-attribute 'default :foreground))))
+
   :custom
   (default-input-method "japanese-mozc")
   (pgtk-use-im-context-on-new-connection nil) ; 環境が用意しているIMへの接続を行わない
-  (mozc-helper-program-name "mozc_emacs_helper"))
+  (mozc-helper-program-name "mozc_emacs_helper")
+
+  :config
+  ;; ; mozc.el と mozc_emacs_helper の仕様の差異を埋める (組み合わせによるのでホスト個別の設定に移す)
+  ;; (advice-add 'mozc-protobuf-get
+  ;;             :around (lambda (orig-fun &rest args)
+  ;;                       (when (eq (nth 1 args) 'candidate-window)
+  ;;                         (setf (nth 1 args) 'candidates))
+  ;;                       (apply orig-fun args)))
+
+  ; かな漢が有効なときにカーソルの色を変更する
+  (add-hook 'input-method-activate-hook 'check-mozc-and-set-cursor-color)
+  (add-hook 'input-method-deactivate-hook 'check-mozc-and-set-cursor-color)
+  (run-at-time t 2
+               'check-mozc-and-set-cursor-color))
 
 (use-package mozc-cand-posframe
   :if window-system
@@ -477,12 +497,6 @@ indent-tabs-mode の時にこそ indentation を当ててほしいんだけど�
 
   :custom
   (mozc-candidate-style  'posframe))
-
-(add-hook 'input-method-activate-hook
-          (lambda() (set-cursor-color "OliveDrab4")))
-
-(add-hook 'input-method-deactivate-hook
-          (lambda() (set-cursor-color "slate gray")))
 #+end_src
 
 
