@@ -1092,6 +1092,7 @@ https://archlinux.org/packages/extra/x86_64/tree-sitter/
      (make "https://github.com/alemuller/tree-sitter-make")
      (markdown "https://github.com/ikatyang/tree-sitter-markdown")
      (python "https://github.com/tree-sitter/tree-sitter-python")
+     (ruby "https://github.com/tree-sitter/tree-sitter-ruby")
      (toml "https://github.com/tree-sitter/tree-sitter-toml")
      (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
      (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
@@ -1125,7 +1126,7 @@ major-mode-remap-alist は呼び出しを奪うだけなので、フックとか
 | make       | yes          |                        |                               |            |
 | markdown   | yes          | markdown-mode(*1)      |                               |            |
 | python     | yes          | python-mode            | python-ts-mode                | remap      |
-| ruby       |              | ruby-mode              | ruby-ts-mode                  |            |
+| ruby       | yes          | ruby-mode              | ruby-ts-mode                  | remap      |
 | toml       | yes          | comf-toml-mode         | toml-ts-mode                  | remap      |
 | tsx        | yes          |                        | tsx-ts-mode                   |            |
 | typescript | yes          |                        | typescript-ts-mode            |            |
