@@ -1469,11 +1469,12 @@ eglot-confirm-server-ediff 'diff は Diff モードの操作で提案を適用�
 インストールされているパッケージを見つけるためにプロジェクトの venv の中にインストールする必要がある。
 
 #+begin_src shell
-pip install "pydocstyle[toml]"
+# pip install "pydocstyle[toml]" pydocstyleは開発が終了しているみたいなので無効にする
 pip install "python-lsp-server[all]"
 pip install pylsp-mypy
 pip install python-lsp-isort
 pip install python-lsp-black
+pip install python-lsp-ruff
 #+end_src
 
 *** typescript-language-server
@@ -1501,7 +1502,7 @@ ln -s ~/.asdf/installs/nodejs/22.14.0/bin/prettier ~/bin
 *** eglot向けの設定
 
 デフォルト値として以下を設定。
-- pydocstyleは終了しているみたいなので無効にする。
+- pydocstyleは開発が終了しているみたいなので無効にする。
 - rope_autoimportは有効にしていると安定しないので無効にする。折を見て再確認する。
 
 #+begin_src emacs-lisp
@@ -1542,6 +1543,16 @@ tree-sitter 対応モードを使うので、フックは python-ts-mode(もし�
 - py-isortの py-isort-before-save は python-mode かどうかのチェックをしているので、コードを編集して python-ts-mode に変える。
 - auto-virtualenvwrapper は .venv の検出より .python-version の検出の処理が先にあるので、コードを編集して順番を逆にする。
 
+以下をプロジェクトごとに .dir-locals.el もしくは .dir-locals-2.el への追記
+- venvを.venvに作っていない場合 (venv-workon "venv名")
+- poetry 利用プロジェクトで ruff-format 利用時に ruff-format-command の設定
+
+#+begin_src emacs-lisp :tangle no
+((python-base-mode . ((eval . (venv-workon "venv名"))
+                      (customize-set-variable 'ruff-format-command "poetry run ruff")
+                      ))
+#+end_src
+
 #+begin_src emacs-lisp
 (use-package virtualenvwrapper
   :straight t
@@ -1567,6 +1578,12 @@ tree-sitter 対応モードを使うので、フックは python-ts-mode(もし�
 
     :hook
     (python-ts-mode . blacken-mode))
+
+(use-package ruff-format
+    :straight t
+
+    :hook
+    (python-ts-mode . ruff-format-on-save-mode))
 
 (use-package py-isort
      :straight t
