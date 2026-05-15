@@ -205,7 +205,8 @@ yes-or-no-p を (x-popup-dialog t '(prompt ("Yes". t) ("No". nil))) に置き換
 #+begin_src emacs-lisp
 ;; スクロール
 (setq scroll-conservatively 1)                                  ;上下端からのスクロール量
-(setq next-screen-context-lines  1)                             ;1画面スクロール時に残す前頁の行数
+(setq next-screen-context-lines  5)                             ;1画面スクロール時に残す前頁の行数
+(setq scroll-margin 5)                                          ;recenter-top-bottom 時に先頭末尾に残す行数
 (setq scroll-preserve-screen-position t)                        ;スクロール時にカーソル位置を維持する
 (setq mouse-wheel-scroll-amount '(5 ((shift) . 1) ((control)))) ;ホイールスクロール時の移動量
 (setq mouse-wheel-progressive-speed nil)                        ;ホイールスクロールを加速しない
