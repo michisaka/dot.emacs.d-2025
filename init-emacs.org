@@ -1158,6 +1158,43 @@ major-mode-remap-alist は呼び出しを奪うだけなので、フックとか
         ))
 #+end_src
 
+* AI (Artificial Intelligence)
+** gptel
+
+APIキーはデフォルトでauthinfoから読み込まれる。machine が api.openapi.com で、 login が apikey のものが参照される。
+他のLLMバックエンドの設定はホスト個別の設定で行う。
+
+- コマンド
+  - gptel-send カーソル位置より前のバッファもしくはリージョンを送信する
+  - gptel 専用のチャットバッファを新規作成します
+  - gptel-rewrite 選択した領域を書き換え、リファクタリング、または変更します
+  - C-u gptel-send もしくは gptel-menu メニュー表示
+  - gptel-add gptelのコンテキストに領域またはバッファをDired上でのマークされたファイルを追加/削除
+  - gptel-add-file gptelのコンテキストにファイルを追加
+
+  - gptel-org-set-topic コンテキストを指定した見出しに限定する
+  - gptel-org-set-properties チャットの設定をプロパティとして設定する
+
+#+begin_src emacs-lisp
+(use-package gptel
+  :straight t
+
+  :commands
+  (gptel gptel-send gptel-menu)
+
+  :custom
+  (gptel-default-mode 'org-mode)
+  (gptel-model 'gpt-5.4-mini)   ; nil だと適切なものにフォールバックするけど、警告が出る
+  ;; (gptel-org-branching-context t)       ; gptel-org-set-topic で指定したほうが便利そう
+  ;; (gptel-highlight-methods '(fringe face))
+
+  ;; :hook
+  ;; (gptel-mode . gptel-highlight-mode)   ; org-modeのインデントと相性が悪そうなので一旦取りやめ
+
+  :config
+  (setf (alist-get 'org-mode gptel-prompt-prefix-alist) "[ME]: ")
+  (setf (alist-get 'org-mode gptel-response-prefix-alist) "[AI]: "))
+#+end_src
 
 * ドキュメント編集
 
