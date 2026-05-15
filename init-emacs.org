@@ -668,7 +668,10 @@ C-x o の後に ? の押下でサブコマンドコマンドのヒントが表�
   :bind
   ("C-x o" . ace-window)
   :hook
-  ((prog-mode text-mode) . ace-window-posframe-mode))
+  ((prog-mode text-mode) . ace-window-posframe-mode)
+
+  :config
+  (ace-window-display-mode t))
 #+end_src
 
 ** tempbuf
