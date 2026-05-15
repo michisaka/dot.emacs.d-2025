@@ -2279,7 +2279,8 @@ go-translate は リージョンに対して起動して、候補バッファ内
 ** 認証情報の保存
 
 #+begin_src emacs-lisp
-(setq auth-source `(password-store)) ; pass を使用する
+;; (setq auth-source `(password-store)) ;
+(auth-source-pass-enable) ; password-store(pass) を使用する
 
 (use-package pass
   :straight t)
