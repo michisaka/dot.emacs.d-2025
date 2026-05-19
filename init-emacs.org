@@ -1197,6 +1197,47 @@ APIキーはデフォルトでauthinfoから読み込まれる。machine が api
   (setf (alist-get 'org-mode gptel-response-prefix-alist) "[AI]: "))
 #+end_src
 
+** org-ai
+*gptelを常用するので一旦 disabled t をセットした*
+
+APIキーはデフォルトでauthinfoから読み込まれる。machine が api.openai.com で、 login が org-ai のものが参照される。
+他のLLMバックエンドの設定はホスト個別の設定で行う。
+
+- begin_ai, end_ai のストラクチャーブロックは C-c C-, で作成できる
+- begin_ai, end_ai ブロック内で
+  - Press C-c <backspace> (org-ai-kill-region-at-point) to remove the chat part under point.
+  - org-ai-mark-region-at-point will mark the region at point.
+  - org-ai-mark-last-region will mark the last chat part.
+- bagin_ai の直後に言語名(? 例えば、markdown)を書くとブロック内でシンタックスハイライトが効く
+
+| org-ai-on-region               | C-c M-a r | 選択したテキストについて質問か指示を行う                           |
+| org-ai-summarize               | C-c M-a s | 選択したテキストを要約する                                         |
+| org-ai-refactor-code           | C-c M-a c | 選択したコードのリファクタリングを行う                             |
+| org-ai-on-project              | C-c M-a p | 複数ファイルに対してプロンプトを実行する                           |
+| org-ai-prompt                  | C-c M-a P | ユーザーにテキストの入力を促し、AIの応答を現在のバッファに表示する |
+| org-ai-switch-chat-model       | C-c M-a m | モデルを変更                                                       |
+| org-ai-open-account-usage-page | C-c M-a $ | openaiのusageページを開く                                          |
+| org-ai-open-request-buffer     | C-c M-a ! | リクエストバッファを開く(デバッグ用)                               |
+| org-ai-talk-input-toggle       | C-c M-a t | 音声入力を有効化                                                   |
+| org-ai-talk-output-toggle      | C-c M-a T | 音声出力を有効化                                                   |
+
+#+begin_src emacs-lisp
+(use-package org-ai
+  :straight t
+  :disabled t
+
+  :commands (org-ai-mode org-ai-global-mode)
+
+  :init
+  (add-hook 'org-mode-hook #'org-ai-mode) ; enable org-ai in org-mode
+  (org-ai-global-mode)                    ; installs global keybindings on C-c M-a
+
+  :custom
+  (org-ai-jump-to-end-of-block nil)
+  (org-ai-default-chat-model "gpt-5.4-mini")
+  (org-ai-default-chat-system-prompt "You are a helpful assistant inside Emacs. Please answer in Japanese unless special instructions."))
+#+end_src
+
 * ドキュメント編集
 
 markdown-mode のエクスポートに pandoc が必要。
