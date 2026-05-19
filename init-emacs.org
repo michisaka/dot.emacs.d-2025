@@ -1255,6 +1255,7 @@ https://yusukebe.com/posts/2021/gh-markdown-preview/
 
   :custom
   (markdown-command  '("pandoc" "--from=markdown" "--to=html5"))
+  (markdown-fontify-code-blocks-natively t)
 
   :mode
   ("README\\.md\\'" . gfm-mode))
