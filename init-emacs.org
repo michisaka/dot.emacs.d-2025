@@ -143,13 +143,14 @@ use-package には機能名(require, provide の引数)を指定する。一方�
   - repeat-mode 用のバインドを :repeat-map を使って指定できる(らしいんだけど、うまく動かせていない)
 - :mode, :interpreter :: auto-mode-alist と interpreter-mode-alist を設定する。対象は暗黙的に:commandsに追加される
 - :magic, :magic-fallback :: :modeがファイル名を見るように、ファイルの内容からモードを選択する。:magic-fallbackは検出のタイミングが遅いはず
-- :hook :: add-hook を行う。 -hook のプレフィックスは不要。暗黙的に:commandsに追加される
+- :hook :: add-hook を行う。 -hook のサフィックスは明示するようにした(use-package-hook-name-suffix nil)。暗黙的に:commandsに追加される
 
 - :config :: パッケージのロード後に行われる。 :config に use-packageをネストさせるのは止める
 
 #+begin_src emacs-lisp
 (straight-use-package 'use-package)
 (require 'use-package)
+(setq use-package-hook-name-suffix nil)
 #+end_src
 
 
@@ -299,7 +300,7 @@ yes-or-no-p を (x-popup-dialog t '(prompt ("Yes". t) ("No". nil))) に置き換
   (desktop-save-mode t)
 
   :hook
-  (desktop-after-read . (lambda() (setq register-alist nil)))) ; ウィンドウ構成がレジスタに残っていると、レジスタ全般が動かないので起動時にレジスタを消す
+  (desktop-after-read-hook . (lambda() (setq register-alist nil)))) ; ウィンドウ構成がレジスタに残っていると、レジスタ全般が動かないので起動時にレジスタを消す
 #+end_src
 
 
@@ -443,7 +444,7 @@ indent-tabs-mode の時にこそ indentation を当ててほしいんだけど�
   :bind
   ("<f6> w" . whitespace-mode)
   :hook
-  ((conf-mode prog-mode text-mode) . whitespace-mode))
+  ((conf-mode-hook prog-mode-hook text-mode-hook) . whitespace-mode))
 #+end_src
 
 
@@ -669,7 +670,7 @@ C-x o の後に ? の押下でサブコマンドコマンドのヒントが表�
   :bind
   ("C-x o" . ace-window)
   :hook
-  ((prog-mode text-mode) . ace-window-posframe-mode)
+  ((prog-mode-hook text-mode-hook) . ace-window-posframe-mode)
 
   :config
   (ace-window-display-mode t))
@@ -687,14 +688,14 @@ https://www.emacswiki.org/emacs/tempbuf.el
   :load-path "elisp/tempbuf.el"
 
   :hook
-  (magit-mode . turn-on-tempbuf-mode)
-  (help-mode . turn-on-tempbuf-mode)
-  ;; (special-mode . turn-on-tempbuf-mode)
-  ;; (embark-collect-mode . turn-on-tempbuf-mode)
-  ;; (grep-mode . turn-on-tempbuf-mode)
-  (diary-mode . turn-on-tempbuf-mode)
-  (diary-fancy-display-mode . turn-on-tempbuf-mode)
-  (dired-mode . turn-on-tempbuf-mode))
+  (magit-mode-hook . turn-on-tempbuf-mode)
+  (help-mode-hook . turn-on-tempbuf-mode)
+  ;; (special-mode-hook . turn-on-tempbuf-mode)
+  ;; (embark-collect-mode-hook . turn-on-tempbuf-mode)
+  ;; (grep-mode-hook . turn-on-tempbuf-mode)
+  (diary-mode-hook . turn-on-tempbuf-mode)
+  (diary-fancy-display-mode-hook . turn-on-tempbuf-mode)
+  (dired-mode-hook . turn-on-tempbuf-mode))
 #+end_src
 
 
@@ -920,7 +921,7 @@ cape の cape-dabbrev は調整が必要そう。
   :custom
   (corfu-popupinfo-delay `(nil . 0.5))
 
-  :hook (corfu-mode . corfu-popupinfo-mode))
+  :hook (corfu-mode-hook . corfu-popupinfo-mode))
 
 (use-package nerd-icons-corfu
   :straight t
@@ -1068,7 +1069,7 @@ cape の cape-dabbrev は調整が必要そう。
   :after (embark consult)
 
   :hook
-  (embark-collect-mode . consult-preview-at-point-mode))
+  (embark-collect-mode-hook . consult-preview-at-point-mode))
 #+end_src
 
 
@@ -1189,7 +1190,7 @@ APIキーはデフォルトでauthinfoから読み込まれる。machine が api
   ;; (gptel-highlight-methods '(fringe face))
 
   ;; :hook
-  ;; (gptel-mode . gptel-highlight-mode)   ; org-modeのインデントと相性が悪そうなので一旦取りやめ
+  ;; (gptel-mode-hook . gptel-highlight-mode)   ; org-modeのインデントと相性が悪そうなので一旦取りやめ
 
   :config
   (setf (alist-get 'org-mode gptel-prompt-prefix-alist) "[ME]: ")
@@ -1335,7 +1336,7 @@ flymake-posframe は eldoc-box-help-at-point より前面に表示されるの�
 ;;   :straight (flymake-posframe :type git :host github :repo "Ladicle/flymake-posframe")
 ;;
 ;;   :hook
-;;   (prog-mode . flymake-posframe-mode))
+;;   (prog-mode-hook . flymake-posframe-mode))
 
 (use-package eldoc-box
   :straight t
@@ -1609,7 +1610,7 @@ tree-sitter 対応モードを使うので、フックは python-ts-mode(もし�
   :straight t
 
   :hook
-  (python-ts-mode . auto-virtualenvwrapper-activate))
+  (python-ts-mode-hook . auto-virtualenvwrapper-activate))
 
 (use-package blacken
     :straight t
@@ -1618,13 +1619,13 @@ tree-sitter 対応モードを使うので、フックは python-ts-mode(もし�
     (blacken-only-if-project-is-blackened t)
 
     :hook
-    (python-ts-mode . blacken-mode))
+    (python-ts-mode-hook . blacken-mode))
 
 (use-package ruff-format
     :straight t
 
     :hook
-    (python-ts-mode . ruff-format-on-save-mode))
+    (python-ts-mode-hook . ruff-format-on-save-mode))
 
 (use-package py-isort
      :straight t
@@ -1655,7 +1656,7 @@ tree-sitter 対応モードを使うので、フックは python-ts-mode(もし�
   :straight t
 
   :hook
-  ((js-ts-mode typescript-ts-mode tsx-ts-mode mhtml-mode css-ts-mode) . prettier-js-mode))
+  ((js-ts-mode-hook typescript-ts-mode-hook tsx-ts-mode-hook mhtml-mode-hook css-ts-mode-hook) . prettier-js-mode))
 
 (use-package add-node-modules-path
   :straight t
@@ -1664,7 +1665,7 @@ tree-sitter 対応モードを使うので、フックは python-ts-mode(もし�
   (add-node-modules-path-command '("echo \"$(npm root)/.bin\""))
 
   :hook
-  ((js-ts-mode  typescript-ts-mode tsx-ts-mode) . add-node-modules-path))
+  ((js-ts-mode-hook typescript-ts-mode-hook tsx-ts-mode-hook) . add-node-modules-path))
 #+end_src
 
 ** Makefile
@@ -1736,7 +1737,7 @@ magit の diff にコマンドを足すものの、magitの差分表示で使う
   :after (dired nerd-icons)
 
   :hook
-  (dired-mode . nerd-icons-dired-mode))
+  (dired-mode-hook . nerd-icons-dired-mode))
 #+end_src
 
 ** Calendar
@@ -2109,7 +2110,7 @@ org-link-completion により、 [[ でリンク関係の補完が効くよう�
   ;; normally we'd recommend hooking orui after org-roam, but since org-roam does not have
   ;; a hookable mode anymore, you're advised to pick something yourself
   ;; if you don't care about startup time, use
-  ;; :hook (after-init . org-roam-ui-mode)
+  ;; :hook (after-init-hook . org-roam-ui-mode)
   :custom
   (org-roam-ui-sync-theme t)
   (org-roam-ui-follow t)
