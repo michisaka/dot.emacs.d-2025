@@ -1902,8 +1902,16 @@ org-link-completion により、 [[ でリンク関係の補完が効くよう�
                         (org-agenda-files :maxlevel . 3)
                         (org-journal--get-entry-path :maxlevel . 1)))
 
+
+  ; これらの設定は org-appear とも連動している
+  (org-hide-emphasis-markers t)
+  (org-link-descriptive t)
+  (org-pretty-entities t)
+  ;; (org-hidden-keywords t)
+
   (org-use-sub-superscripts '{})            ;^上付き _下付き を{}が後続する時に制限する
   (org-export-with-sub-superscripts '{})    ;^上付き _下付き を{}が後続する時に制限する (exportのとき)
+
   (org-directory "~/org")
   (org-agenda-files '("~/org/task/work.org"
                       "~/org/task/home.org"
@@ -1993,6 +2001,24 @@ org-link-completion により、 [[ でリンク関係の補完が効くよう�
   (org-download-method 'directory)
   (org-download-image-dir "Attachments")
   (org-download-heading-lvl 0))
+
+(use-package org-appear
+  :if window-system
+
+  :straight t
+
+  :custom
+  (org-appear-autoemphasis t)      ; if non-nil and org-hide-emphasis-markers is on, toggle emphasis markers
+  (org-appear-autolinks t)         ; if non-nil and org-link-descriptive is on, toggle links
+  (org-appear-autosubmarkers nil)  ; if non-nil and org-pretty-entities is on, toggle subscripts and superscripts
+  (org-appear-autoentities  t)     ; if non-nil and org-pretty-entities is on, toggle Org entitites
+  (org-appear-autokeywords  t)     ; if non-nil and org-hidden-keywords is on, toggle keywords in org-hidden-keywords
+  (org-appear-inside-latex  t)     ; if non-nil, toggle entities and sub/superscripts in LaTeX fragments
+  (org-appear-delay  0.5)          ; seconds of delay before toggling
+  (org-appear-trigger 'on-change)  ; when to toggle elements
+
+  :hook
+  (org-mode-hook . org-appear-mode))
 
 (org-babel-do-load-languages
  'org-babel-load-languages
