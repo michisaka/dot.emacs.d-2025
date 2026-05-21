@@ -1173,21 +1173,31 @@ major-mode-remap-alist は呼び出しを奪うだけなので、フックとか
 #+end_src
 
 * AI (Artificial Intelligence)
-** gptel
+[[id:204fa87b-dfcd-443b-a4db-caaf9ab79e4b][Emacs with AI chat]]
 
-APIキーはデフォルトでauthinfoから読み込まれる。machine が api.openapi.com で、 login が apikey のものが参照される。
+** gptel
+APIキーはデフォルトでauthinfoから読み込まれる。machine が api.openai.com で、 login が apikey のものが参照される。
 他のLLMバックエンドの設定はホスト個別の設定で行う。
 
-- コマンド
-  - gptel-send カーソル位置より前のバッファもしくはリージョンを送信する
-  - gptel 専用のチャットバッファを新規作成します
-  - gptel-rewrite 選択した領域を書き換え、リファクタリング、または変更します
-  - C-u gptel-send もしくは gptel-menu メニュー表示
-  - gptel-add gptelのコンテキストに領域またはバッファをDired上でのマークされたファイルを追加/削除
-  - gptel-add-file gptelのコンテキストにファイルを追加
+- コンテキストの指定
+  - gptelはデフォルトでバッファ先頭からカーソル位置までがコンテキストに含まれる
+  - gptel-org-branching-context t でサブツリーをコンテキストとすることができる
+    - 少し使い勝手が悪いので無効にしてある
+  - バッファを狭める。gptelはバッファの表示されている部分のみを対象とできる
+    - org-tree-to-indirect-buffer(C-c C-x b) でサブツリーを別バッファにする
+    - C-c C-, からストラクチャーブロック(C comment)を作って org-narrow-to-block でバッファの表示範囲を狭める
+      - narrowing は全体が見えなくなるのでorg-tree-to-indirect-bufferと組み合わせる
 
-  - gptel-org-set-topic コンテキストを指定した見出しに限定する
-  - gptel-org-set-properties チャットの設定をプロパティとして設定する
+- コマンド
+  - gptel-send :: カーソル位置より前のバッファもしくはリージョンを送信する
+  - gptel :: 専用のチャットバッファを新規作成します
+  - gptel-rewrite :: 選択した領域を書き換え、リファクタリング、または変更します
+  - C-u gptel-send :: もしくは gptel-menu メニュー表示
+  - gptel-add :: gptelのコンテキストに領域またはバッファをDired上でのマークされたファイルを追加/削除
+  - gptel-add-file :: gptelのコンテキストにファイルを追加
+
+  - gptel-org-set-topic :: コンテキストを指定した見出しに限定する
+  - gptel-org-set-properties :: チャットの設定をプロパティとして設定する
 
 #+begin_src emacs-lisp
 (use-package gptel
@@ -1195,6 +1205,9 @@ APIキーはデフォルトでauthinfoから読み込まれる。machine が api
 
   :commands
   (gptel gptel-send gptel-menu)
+
+  :init
+  (setq gptel-directives (my/load-my-eld "gptel.eld" 'system-prompt)) ; 設定タイミングの都合でデフォルト値が復元されることがあるので :init で設定
 
   :custom
   (gptel-default-mode 'org-mode)
