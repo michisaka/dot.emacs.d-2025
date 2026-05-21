@@ -156,6 +156,19 @@ use-package には機能名(require, provide の引数)を指定する。一方�
 
 * ファイルとディレクトリと環境変数
 
+eldファイルに保存した設定を読み込む
+
+#+begin_src emacs-lisp
+(defun my/load-my-eld (filename key)
+  "指定したmy-data/*.eldファイルからデータを読み込み、keyに対応する値を返します。ファイルがない場合はnilを返します。"
+  (when (file-exists-p (locate-user-emacs-file (file-name-concat "my-data" filename)))
+    (with-temp-buffer
+      (insert-file-contents (locate-user-emacs-file (file-name-concat "my-data" filename)))
+      (goto-char (point-min))
+      (let ((data (read (current-buffer))))
+        (cdr (assoc key data))))))
+#+end_src
+
 大昔、$HOME が NFS 上にあった頃 $HOME 配下のファイルが同一視されなくて default-directory に "~/" をセットしたような気がする。今回は外して様子を見てみる。
 
 infoディレクトリ配下にinfoファイルを追加した場合、install-info --dir-file=dir "INFOファイル" が必要。
@@ -1913,10 +1926,7 @@ org-link-completion により、 [[ でリンク関係の補完が効くよう�
   (org-export-with-sub-superscripts '{})    ;^上付き _下付き を{}が後続する時に制限する (exportのとき)
 
   (org-directory "~/org")
-  (org-agenda-files '("~/org/task/work.org"
-                      "~/org/task/home.org"
-                      "~/org/task/bucketlist.org"
-                      "~/org/task/routine.org"))
+  (org-agenda-files (my/load-my-eld "org.eld" 'agenda-files))
   (org-src-preserve-indentation t)          ;コードブロックで1段インデントしない
   (org-src-window-setup 'current-window)    ;コードブロックの編集を現在のウィンドウで行う
   (org-clock-out-remove-zero-time-clocks t) ;一分未満を計時しない
@@ -2345,6 +2355,7 @@ lookup は http://green.ribbon.to/~ikazuhiro/lookup/lookup.html のものをダ�
   (ndspell-ispell-program "aspell")
   (lookup-enable-splash nil)
   (ndeb-binary-programs '((wave "sndfile-play")))
+  (lookup-search-agents (my/load-my-eld "lookup.eld" 'search-agents))
 
   :bind
   (:map ctl-x-map
@@ -2431,11 +2442,10 @@ go-translate は リージョンに対して起動して、候補バッファ内
 
 * ホスト固有の設定を読み込む
 
-init.elと同じディレクトリにある init-ホスト名.el をロードする。
-主に、緯度経度の設定とフォントの設定が入っている。基本的にバージョン管理には含めない。
+my-dataディレクトリにある init-ホスト名.el をロードする。基本的にバージョン管理には含めない。
 
 #+begin_src emacs-lisp
-(setq init-host-el (locate-user-emacs-file (concat "init-" (car (split-string system-name "\\.")) ".el")))
+(setq init-host-el (locate-user-emacs-file (file-name-concat "my-data" (concat "init-" (car (split-string system-name "\\.")) ".el"))))
 (if (file-exists-p init-host-el)
     (load-file init-host-el))
 
