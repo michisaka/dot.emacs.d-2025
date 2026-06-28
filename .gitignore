@@ -4,6 +4,7 @@
 /.org-id-locations
 /auto-save-list/
 /backup/
+!/backup/.gitkeep
 /bookmarks
 /custom.el
 /diary/*
