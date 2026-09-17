@@ -1615,23 +1615,50 @@ eglot-confirm-server-ediff 'diff は Diff モードの操作で提案を適用�
   (eglot-tempel-mode t))
 #+end_src
 
-** LSPサーバ
+*** LSPサーバごとの設定
 
-*** python-lsp-server
+**** python-lsp-server
+各プロジェクトごとに有効にするプラグインが異なるため .dir-locals-2.el に記述する
 
-以下でインストール。poetry がいる場合は poetry add --optional --group lsp を使う。
-インストールされているパッケージを見つけるためにプロジェクトの venv の中にインストールする必要がある。
+以下のサンプルを適宜コピーして使用する。
+各プラグインの enabled は python-lsp-server のデフォルト値。(isortとblackは追加パッケージにて有効)
 
-#+begin_src shell
-# pip install "pydocstyle[toml]" pydocstyleは開発が終了しているみたいなので無効にする
-pip install "python-lsp-server[all]"
-pip install pylsp-mypy
-pip install python-lsp-isort
-pip install python-lsp-black
-pip install python-lsp-ruff
+python-lsp-ruff は別途明示していない限り autopep8, mccabe, pycodestyle, pyflakes, yapf を無効にする。
+そのため、以下のリストからは除外して転記したほうが良い。
+
+- pydocstyleは開発が終了しているみたいなので無効にする
+- rope_autoimportは有効にしていると安定しないので無効にする。折を見て再確認する
+
+*デフォルトだと pylint が無効になっているので気をつける* 。
+
+#+begin_src emacs-lisp :tangle no
+((python-base-mode . ((eglot-workspace-configuration .
+                         (:pylsp (:plugins (:autopep8 (:enabled t) ; disabling required to use yapf
+                                            :flake8 (:enabled :json-false)
+                                            :jedi_completion (:enabled t)
+                                            :jedi_definition (:enabled t)
+                                            :jedi_hover (:enabled t)
+                                            :jedi_references (:enabled t)
+                                            :jedi_signature_help (:enabled t)
+                                            :jedi_symbols (:enabled t)
+                                            :jedi_type_definition (:enabled t)
+                                            :mccabe (:enabled t)
+                                            :pycodestyle (:enabled t)
+                                            :pydocstyle (:enabled :json-false :conversion "google")
+                                            :pyflakes (:enabled t)
+                                            :pylint (:enabled :json-false :executable "pylint")
+                                            :rope_autoimport (:enabled :json-false)
+                                            :rope_completion (:enabled :json-false)
+                                            :yape (:enabled t)
+
+                                            :isort (:enabled t)
+                                            :black (:enabled t)
+                                            ))))
+                      (eval . (add-to-list 'eglot-server-programs '((python-ts-mode) "/PATH/TO/pylsp"))))
+                   ))
 #+end_src
 
-*** typescript-language-server
+**** typescript-language-server
 
 以下でインストール。add-node-modules-pathでプロジェクトのnode_modules/.bin配下のコマンドを利用するようになる。
 
@@ -1653,41 +1680,6 @@ ln -s ~/.asdf/installs/nodejs/22.14.0/bin/prettier ~/bin
 #+end_src
 
 
-*** eglot向けの設定
-
-デフォルト値として以下を設定。
-- pydocstyleは開発が終了しているみたいなので無効にする。
-- rope_autoimportは有効にしていると安定しないので無効にする。折を見て再確認する。
-
-#+begin_src emacs-lisp
-(setq-default eglot-workspace-configuration
-              '(:pylsp (
-                        :plugins (:autopep8 (:enable :json-false)
-                                  :flake8 (:enabled t)
-                                  :mccabe (:enabled t)
-                                  :pycodestyle (:enabled t)
-                                  :pydocstyle (:enabled :json-false :conversion "google")
-                                  :pylint (:enabled t :executable "pylint")
-                                  :rope_autoimport (:enabled :json-false)
-                                  :yape (:enabled :json-false)
-                                  :black (:enabled t)))))
-#+end_src
-
-あるいは以下の内容を .dir-locals.el もしくは .dir-locals-2.el に記載。
-
-#+begin_src emacs-lisp :tangle no
-((python-base-mode . ((eglot-workspace-configuration . (:pylsp (:plugins (:autopep8 (:enable :json-false)
-                                                                          :flake8 (:enabled t)
-                                                                          :mccabe (:enabled t)
-                                                                          :pycodestyle (:enabled t)
-                                                                          :pydocstyle (:enabled :json-false :conversion "google")
-                                                                          :pylint (:enabled t :executable "pylint")
-                                                                          :rope_autoimport (:enabled :json-false)
-                                                                          :yape (:enabled :json-false)
-                                                                          :black (:enabled t)))))
-                      (eval . (add-to-list 'eglot-server-programs '((python-ts-mode) "/PATH/TO/pylsp"))))
-                   ))
-#+end_src
 
 ** python
 
