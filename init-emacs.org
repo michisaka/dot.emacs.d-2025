@@ -1187,6 +1187,13 @@ major-mode-remap-alist は呼び出しを奪うだけなので、フックとか
 * AI (Artificial Intelligence)
 [[id:204fa87b-dfcd-443b-a4db-caaf9ab79e4b][Emacs with AI chat]]
 
+- gptel と コーディングエージェント(agent-shell) で agent-browserを利用している
+  - [[https://github.com/vercel-labs/agent-browser][agent-browser Browser automation CLI for AI agents. Fast native Rust CLI.]]
+
+  - インストール
+    - npm install -g agent-browser
+    - agent-browser install
+
 ** gptel
 APIキーはデフォルトでauthinfoから読み込まれる。machine が api.openai.com で、 login が apikey のものが参照される。
 他のLLMバックエンドの設定はホスト個別の設定で行う。
@@ -1220,6 +1227,13 @@ APIキーはデフォルトでauthinfoから読み込まれる。machine が api
 
   :init
   (setq gptel-directives (my/load-my-eld "gptel.eld" 'system-prompt)) ; 設定タイミングの都合でデフォルト値が復元されることがあるので :init で設定
+  (defun my-agent-browser-page-text (url)
+    "URLをagent-browserで開き、ページ本文テキストを返す。"
+    (with-temp-buffer
+      (call-process "agent-browser" nil t nil "open" url)
+      (erase-buffer)
+      (call-process "agent-browser" nil t nil "get" "text" "body")
+      (buffer-string)))
 
   :custom
   (gptel-default-mode 'org-mode)
@@ -1231,6 +1245,19 @@ APIキーはデフォルトでauthinfoから読み込まれる。machine が api
   ;; (gptel-mode-hook . gptel-highlight-mode)   ; org-modeのインデントと相性が悪そうなので一旦取りやめ
 
   :config
+  (setq gptel-tools
+        (list
+         (gptel-make-tool
+          :name "read_web_page"
+          :function #'my-agent-browser-page-text
+          :description "指定URLのWebページをagent-browserで開き、body要素のテキストを返す。"
+          :args (list '(:name "url"
+                              :type string
+                              :description "読みたいWebページのURL"))
+          :category "web"
+          :confirm t
+          :include t)))
+
   (setf (alist-get 'org-mode gptel-prompt-prefix-alist) "[ME]: ")
   (setf (alist-get 'org-mode gptel-response-prefix-alist) "[AI]: "))
 #+end_src
