@@ -2322,8 +2322,9 @@ org-link-completion により、 [[ でリンク関係の補完が効くよう�
 
 *** org-roam
 
-- 気になっているもの
-  - [[https://github.com/tefkah/org-roam-timestamps][org-roam-timestamps]]
+- タイトルとファイル名の変更
+  - #+TITLE: を変えて保存する
+  - ファイル名を変更して =M-x org-roam-db-sync= を実行
 
 #+begin_src emacs-lisp
 (use-package org-roam
@@ -2337,11 +2338,11 @@ org-link-completion により、 [[ でリンク関係の補完が効くよう�
 
   (org-roam-capture-templates '(
     ("f" "Fleeting Notes" entry "* ${title} %U\n%i%?" :target (file+head "fleeting/note.org" "#+title: Fleeting Notes") :unnarrowed t :prepend t)
-    ("p" "Permanent Notes" plain "%i%?\n" :target (file+head "${directory}/%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}") :unnarrowed t)))
+    ("p" "Permanent Notes" plain "%i%?\n" :target (file+head "${directory}/${slug}.org" ":PROPERTIES:\n:CREATED:  %<%Y-%m-%d_%H:%M:%S>\n:END:\n#+title: ${title}") :unnarrowed t)))
 
   (org-roam-capture-ref-templates '(
     ("r" "ref" plain "%?" :target (file+head "literature/web-articles/${slug}.org" "#+title: ${title}") :unnarrowed t)
-    ("b" "books" plain "* まとめ\n* 書いてあったこと\n%?\n* 読んで思ったこと\n" :target (file+head "literature/books/%i-${slug}.org" ":PROPERTIES:\n:ISBN: %i\n:END:\n#+title: ${title}\n") :unnarrowed t)
+    ("b" "books" plain "* まとめ\n* 書いてあったこと\n%?\n* 読んで思ったこと\n" :target (file+head "literature/books/${slug}-%i.org" ":PROPERTIES:\n:ISBN: %i\n:END:\n#+title: ${title}\n") :unnarrowed t)
     ("t" "twitter" plain "%i\n\n%?" :target (file+head "literature/twitter/${slug}.org" "#+title: ${title}") :unnarrowed t)))
 
   :bind
