@@ -1467,7 +1467,11 @@ git-gutter-fringe の repeat-map はまだちゃんと動いていない。
 
 #+begin_src emacs-lisp
 (use-package magit
-  :straight  t)
+  :straight  t
+
+  :custom
+  (magit-display-buffer-function #'magit-display-buffer-fullframe-status-v1)
+  (magit-bury-buffer-function #'magit-restore-window-configuration))
 
 (use-package magit-delta
   :straight t
