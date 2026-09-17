@@ -1751,6 +1751,87 @@ ln -s ~/.asdf/installs/nodejs/22.14.0/bin/prettier ~/bin
 )
 #+end_src
 
+** Agent Shell
+
+気になっているもの
+- [[https://github.com/dcluna/agent-shell-bookmark][dcluna/agent-shell-bookmark]]
+- [[https://github.com/zackattackz/agent-shell-notifications][zackattackz/agent-shell-notifications]]
+- [[https://github.com/nineluj/agent-review][nineluj/agent-review]]
+
+エージェントごとに追加でソフトウェアのインストールが必要
+
+- codex
+  - npm i -g @openai/codex
+  - npm i -g @zed-industries/codex-acp
+- Claude Code
+  - [[https://code.claude.com/docs/en/overview][Claude Agent]] or npm install -g @anthropic-ai/claude-code
+  - npm install -g @agentclientprotocol/claude-agent-acp
+- GitHub Copilot
+  - copilot cli
+
+#+begin_src emacs-lisp
+(use-package agent-shell
+  :straight t
+
+  :preface
+  (defun my/agent-shell-viewport-input-method-off (&rest _)
+    (deactivate-input-method))
+
+  :autoload agent-shell-make-environment-variables
+
+  :custom
+  ;; 全般設定 コメントアウトしているものはデフォルト値
+  ;; (agent-shell-clipboard-image-handlers )         ; クリップボード画像をファイルに保存するハンドラ
+  ;; (agent-shell-screenshot-command )               ; スクリーンショットを取得する際に使用するプログラム
+
+  ;; (agent-shell-show-welcome-message t)                 ; 非 nil の場合、ウェルカムメッセージを表示する
+  ;; (agent-shell-highlight-blocks nil)                   ; ソースブロックをハイライトするか否か https://github.com/xenodium/agent-shell/issues/119
+  ;; (agent-shell-thought-process-expand-by-default nil)  ; 思考プロセスのセクションをデフォルトで展開するか否か
+  ;; (agent-shell-tool-use-expand-by-default nil)         ; ツール使用セクションをデフォルトで展開するか否か
+  ;; (agent-shell-user-message-expand-by-default nil)     ; ユーザーメッセージのセクションをデフォルトで展開するか否か
+  (agent-shell-show-usage-at-turn-end t)                  ; エージェントターン終了時に使用情報を表示するか否か
+
+  ;; (agent-shell-embed-file-size-limit 102400)           ; ContentBlock::Resource による埋め込みの最大ファイルサイズ（バイト）
+  ;; (agent-shell-file-completion-enabled t)              ; 非 nil の場合、シェル起動時にファイル補完が自動的に有効になる
+  ;; (agent-shell-text-file-capabilities t)               ; エージェントが読み書き可能なテキストファイル機能で初期化されるか否か
+  (agent-shell-prefer-viewport-interaction t)             ; 非 nil の場合、‘agent-shell’ はシェル操作よりビューポート操作を優先する
+
+  ;; エージェントごとの設定 は ホスト固有の設定ファイルで行う
+
+  :bind
+  (:map agent-shell-mode-map
+        ("RET" . newline)
+        ("C-c C-c" . shell-maker-submit)
+        ("C-c C-k" . agent-shell-interrupt))
+
+  :config
+  (advice-add 'agent-shell-viewport-view-mode
+              :before
+              #'my/agent-shell-viewport-input-method-off))
+
+(use-package agent-shell-attention
+  :straight (agent-shell-attention :type git :host github :repo "ultronozm/agent-shell-attention.el")
+  :after agent-shell
+
+  :bind
+  ("<f6> A" . agent-shell-attention-dashboard)
+
+  :config
+  (agent-shell-attention-mode 1)
+  (setopt agent-shell-attention-render-function
+          #'agent-shell-attention-render-active)
+  ;; (setopt agent-shell-attention-show-zeros t)
+  (setopt agent-shell-attention-indicator-location 'mode-line-misc-info)
+  (setopt agent-shell-attention-notify-function #'agent-shell-attention-notify-default))
+
+(use-package agent-shell-manager
+  :straight (agent-shell-manager :type git :host github :repo "jethrokuan/agent-shell-manager")
+  :after agent-shell
+
+  :bind
+  ("<f6> a" . agent-shell-manager-toggle))
+#+end_src
+
 ** python
 
 tree-sitter 対応モードを使うので、フックは python-ts-mode(もしくは python-base-mode) に引っ掛ける。mapは python-ts-mode-map。
