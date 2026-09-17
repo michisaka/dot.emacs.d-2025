@@ -2137,6 +2137,7 @@ org-link-completion により、 [[ でリンク関係の補完が効くよう�
   (org-src-window-setup 'current-window)    ;コードブロックの編集を現在のウィンドウで行う
   (org-clock-out-remove-zero-time-clocks t) ;一分未満を計時しない
   (org-clock-clocked-in-display 'frame-title) ;計時の内容をフレームタイトルに表示する
+  (org-clock-mode-line-total 'current)      ;org-clock-clocked-in-displayで表示される時間を(累積でなく)現在の計測分に限る
   (org-log-done 'time)                      ;DONEに遷移したとき時刻を記録する
   (org-agenda-include-diary t)              ;アジェンダにdiaryの内容を含める
   (org-agenda-start-on-weekday 1)           ;週のアジェンダを月曜始まりにする
@@ -2262,22 +2263,61 @@ org-link-completion により、 [[ でリンク関係の補完が効くよう�
 
   :init
   (setq org-journal-prefix-key "C-c o j")
+  (defun my/org-clock-in-to-journal ()
+    "org-clock-in 時に journal に開始ログを追加"
+    (when (org-clocking-p)
+      (let* ((heading (org-get-heading t t t t))
+             (time (format-time-string "%H:%M"))
+             (journal-file (org-journal--get-entry-path)))
+        (with-current-buffer (find-file-noselect journal-file)
+          ;; 見出しがない場合は作る
+          (unless (org-find-exact-headline-in-buffer (format-time-string "%F (%a)"))
+            (goto-char (point-max))
+            (insert (format-time-string "\n* %F (%a)\n")))
+          ;; journal セクションの末尾に移動
+          (goto-char (org-find-exact-headline-in-buffer (format-time-string "%F (%a)") nil t))
+          (org-end-of-subtree t t)
+          ;; ログを追加
+          (insert (format "** %s ▼ %s 開始\n" time heading))
+          (save-buffer)))))
+
+  (defun my/org-clock-out-to-journal ()
+    "org-clock-out 時に journal に終了ログを追加"
+    (let* ((heading (org-get-heading t t t t))
+           (time (format-time-string "%H:%M"))
+           (journal-file (org-journal--get-entry-path)))
+      (with-current-buffer (find-file-noselect journal-file)
+        ;; 見出しがない場合は作る
+        (unless (org-find-exact-headline-in-buffer (format-time-string "%F (%a)"))
+          (goto-char (point-max))
+          (insert (format-time-string "\n* %F (%a)\n")))
+        ;; journal セクションの末尾に移動
+        (goto-char (org-find-exact-headline-in-buffer (format-time-string "%F (%a)") nil t))
+        (org-end-of-subtree t t)
+        ;; ログを追加
+        (insert (format "** %s ▲ %s 終了\n" time heading ))
+        (save-buffer))))
 
   :custom
   (org-journal-dir "~/org/journal/")
-  (org-journal-file-type 'weekly)
+  (org-journal-file-format "%Y%m%d.org")
+  (org-journal-find-file #'find-file)
   (org-extend-today-until 4)
   (org-use-effective-time t)
-  (org-journal-file-format "%Y%m%d.org")
-  (org-journal-file-header "#+TITLE: Weekly Journal (%Y %V)\n#+FILETAGS: :journal:\n")
+
   (org-journal-date-format "%F (%a)")
-  (org-journal-time-format "%R- ")
+  (org-journal-time-format "%R ■ ")
+  (org-journal-file-header "#+TITLE: Daily Journal %Y-%m-%d (w:%V)\n#+FILETAGS: :journal:\n\n* Tasks\n\n* %F (%a)\n")
   (org-journal-hide-entries-p t)
-  (org-journal-enable-agenda-integration t)
+
   (org-journal-carryover-items "TODO={TODO\\|PROGRESS\\|WAITING\\|SCHEDULED\\|SOMEDAY}")
 
   :bind
-  ("C-c o j" . org-journal-new-entry))
+  ("C-c o j" . org-journal-new-entry)
+
+  :hook
+  (org-clock-in-hook . my/org-clock-in-to-journal)
+  (org-clock-out-hook . my/org-clock-out-to-journal))
 #+end_src
 
 *** org-roam
