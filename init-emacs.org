@@ -1168,7 +1168,7 @@ major-mode-remap-alist は呼び出しを奪うだけなので、フックとか
 | dockerfile |              |                        | dockerfile-ts-mode            |            |
 | elisp      | yes          |                        |                               |            |
 | go         |              |                        | go-ts-mode, go-mod-ts-mode    |            |
-| html       | yes          | mhtml-mode, html-mode  | html-ts-mode                  | remap (*2) |
+| html       | yes          | mhtml-mode, html-mode  | html-ts-mode, mhtml-ts-mode   | remap      |
 | java       |              |                        | java-ts-mode                  |            |
 | javascript | yes          | javascript-mode        | js-ts-mode                    | remap      |
 | json       | yes          |                        | json-ts-mode                  |            |
@@ -1197,6 +1197,7 @@ major-mode-remap-alist は呼び出しを奪うだけなので、フックとか
         (css-mode . css-ts-mode)
         (javascript-mode . js-ts-mode)
         (html-mode . html-ts-mode)
+        (mhtml-mode . mhtml-ts-mode)
         (python-mode . python-ts-mode)
         (ruby-mode . ruby-ts-mode)
         (comf-toml-mode. toml-ts-mode)
