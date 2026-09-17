@@ -2237,7 +2237,7 @@ org-link-completion により、 [[ でリンク関係の補完が効くよう�
   :straight t
 
   :config
-  (setq ob-mermaid-cli-path "~/bin/mmdc")
+  ;; (setq ob-mermaid-cli-path "~/bin/mmdc")
   (require 'ob-mermaid))
 
 (use-package org-web-tools
