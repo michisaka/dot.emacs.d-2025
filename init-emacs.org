@@ -2108,6 +2108,31 @@ org-link-completion により、 [[ でリンク関係の補完が効くよう�
 (use-package org
   :straight t
 
+  :preface
+  (defun my/org-agenda-skip-not-ready ()
+    "Skip entries whose SCHEDULED date has not arrived."
+    (let ((scheduled (org-entry-get nil "SCHEDULED")))
+      (when (or (null scheduled)
+                (> (org-time-string-to-absolute scheduled)
+                   (org-today)))
+        (org-entry-end-position))))
+
+  (defun my/org-agenda-skip-ready ()
+    "Skip entries whose SCHEDULED date has already arrived."
+    (let ((scheduled (org-entry-get nil "SCHEDULED"))
+          (state (org-get-todo-state)))
+      (unless
+          (or
+           ;; 未来に予定されているが state が SCHEDULED ではない
+           (and scheduled
+                (not (string= state "SCHEDULED"))
+                (> (org-time-string-to-absolute scheduled)
+                   (org-today)))
+           ;; state は SCHEDULED なのに予定日がない
+           (and (null scheduled)
+                (string= state "SCHEDULED")))
+        (org-entry-end-position))))
+
   :init
   (defun org-hode-hooks ()
     (add-hook 'before-save-hook 'org-agenda-to-appt t))
@@ -2181,6 +2206,23 @@ org-link-completion により、 [[ でリンク関係の補完が効くよう�
                              "DONE(d)"
                              "PENDING"
                              "CANCELED(c)")))
+
+  (with-eval-after-load 'org-agenda
+    (add-to-list
+     'org-agenda-custom-commands
+     '("R" "Future scheduled tasks"
+       tags "-dummy" ; 本当であれば todo "-SCHEDULED" としたい
+       ((org-agenda-overriding-header "Future scheduled tasks")
+        (org-agenda-skip-function
+         #'my/org-agenda-skip-ready))))
+    (add-to-list
+     'org-agenda-custom-commands
+     '("r" "Ready scheduled tasks"
+       todo "SCHEDULED"
+       ((org-agenda-overriding-header "Ready scheduled tasks")
+        (org-agenda-skip-function
+         #'my/org-agenda-skip-not-ready)))))
+
   (require 'org-habit)
   (require 'ox-beamer))
 
