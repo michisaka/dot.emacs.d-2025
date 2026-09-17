@@ -465,8 +465,6 @@ indent-tabs-mode の時にこそ indentation を当ててほしいんだけど�
 
 .Xresourcesに Emacs*useXIM: false も追記。
 
-かな漢のOn/Offをそれぞれ別のキーに割り当てたいけど、キーが足りない。
-
 #+begin_src emacs-lisp
 (require 'ucs-normalize)
 (set-language-environment 'Japanese)
@@ -485,10 +483,24 @@ indent-tabs-mode の時にこそ indentation を当ててほしいんだけど�
         (set-cursor-color "OliveDrab4")
       (set-cursor-color (face-attribute 'default :foreground))))
 
+  (defun my/input-method-on ()
+    "Turn on input method."
+    (interactive)
+    (unless current-input-method
+      (activate-input-method default-input-method)))
+  (defun my/input-method-off ()
+    "Turn off input method."
+    (interactive)
+    (deactivate-input-method))
+
   :custom
   (default-input-method "japanese-mozc")
   (pgtk-use-im-context-on-new-connection nil) ; 環境が用意しているIMへの接続を行わない
   (mozc-helper-program-name "mozc_emacs_helper")
+
+  :bind
+  ([remap toggle-input-method] . my/input-method-on)
+  ("M-\\" . my/input-method-off)
 
   :config
   ;; ; mozc.el と mozc_emacs_helper の仕様の差異を埋める (組み合わせによるのでホスト個別の設定に移す)
