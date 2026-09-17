@@ -5,33 +5,54 @@
 
 * セットアップ時にやること
 
+** 外部プログラム
+
+- LaTeXタイプセット環境
+- agent-browser
+- claude-agent-acp
+- claude-code
+- codex-acp
+- codex-cli
+- copilot cli
+- copilot-language-serve
+- eblook (個別にビルドしたもの)
+- emacs-lsp-booster (リポジトリから取得したもの)
+- fd
+- git
+- libeb
+- mermaid-cli
+- mozc_emacs_helper (自前でビルドできるようにしたい)
+- node-icons
+- pandoc
+- pass
+- ripgrep
+- tmux
+- tree-sitter
+- wl-paste (Wayland)
+- xclip (Xorg)
+
+** 起動前にやること
+
 - infoファイルの設置とinstall-info --dir-file=dir の実行
-- node-iconsがシステムに存在しなければ M-x nerd-icons-install-fonts でインストール
 - elisp 配下に以下を設置
   - tempbuf.el
   - lookup(個別にビルドしたもの)
+- my-data配下のファイルの配置・調整
+  - gptel.eld
+  - lookup.eld
+  - org.eld
+  - init-HOSTNAME.el
+
+** 起動後にやること
+
 - tree sitter 文法ファイルのダウンロード
 - M-x lookup を実行して使用する辞書の選択を行う
 - M-x desktop-save を実行してデスクトップファイルを保存しておく
+
 - パッケージの改変
   - py-isort の py-isort-before-save がチェックしているモードを python-ts-mode に変える
   - auto-virtualenvwrapper の仮想環境の検知順の .venv の順位を .python-version より上に上げる
 
-- 必要な外部プログラム
-  - mozc_emacs_helper (自前でビルドできるようにしたい)
-  - emacs-lsp-booster (リポジトリから取得したもの)
-  - eblook (個別にビルドしたもの)
-  - libeb
-  - ripgrep
-  - fd
-  - tree-sitter
-  - pandoc
-  - LaTeXタイプセット環境
-  - git
-  - pass
-  - tmux
-  - xclip
-  - mermaid-cli
 
 * org babel tangle
 
@@ -323,8 +344,6 @@ yes-or-no-p を (x-popup-dialog t '(prompt ("Yes". t) ("No". nil))) に置き換
 
 気になっている パッケージ
 - doom-modeline (minions と互換性がある)
-
-nerd-icons のインストールが必要。M-x nerd-icons-install-fonts でインストールすることもできる。
 
 #+begin_src emacs-lisp
 (setq inhibit-startup-screen 0)        ;起動画面を静かにする
@@ -1187,13 +1206,6 @@ major-mode-remap-alist は呼び出しを奪うだけなので、フックとか
 * AI (Artificial Intelligence)
 [[id:204fa87b-dfcd-443b-a4db-caaf9ab79e4b][Emacs with AI chat]]
 
-- gptel と コーディングエージェント(agent-shell) で agent-browserを利用している
-  - [[https://github.com/vercel-labs/agent-browser][agent-browser Browser automation CLI for AI agents. Fast native Rust CLI.]]
-
-  - インストール
-    - npm install -g agent-browser
-    - agent-browser install
-
 ** gptel
 APIキーはデフォルトでauthinfoから読み込まれる。machine が api.openai.com で、 login が apikey のものが参照される。
 他のLLMバックエンドの設定はホスト個別の設定で行う。
@@ -1306,13 +1318,6 @@ APIキーはデフォルトでauthinfoから読み込まれる。machine が api
 
 * ドキュメント編集
 
-markdown-mode のエクスポートに pandoc が必要。
-https://archlinux.org/packages/extra/x86_64/pandoc-cli/
-
-python-grip が動かなくなっているので、gh-markdown-previewの利用を検討。
-https://yusukebe.com/posts/2021/gh-markdown-preview/
-
-
 #+begin_src emacs-lisp
 (setq dns-mode-soa-auto-increment-serial  nil) ;DNSゾーンファイルのシリアル値を自動でインクリメントしない
 
@@ -1344,7 +1349,6 @@ https://yusukebe.com/posts/2021/gh-markdown-preview/
 
 ** 野鳥
 
-LaTeXの タイプセット環境が必要。
 YaTeX-Template-File は autoinsert に移動。
 
 [[https://fanblogs.jp/goodfornothing/archive/3440/0][Emacs: やてふモードで TeX ファイルが色付きにならない問題]]
@@ -1763,17 +1767,6 @@ ln -s ~/.asdf/installs/nodejs/22.14.0/bin/prettier ~/bin
 - [[https://github.com/dcluna/agent-shell-bookmark][dcluna/agent-shell-bookmark]]
 - [[https://github.com/zackattackz/agent-shell-notifications][zackattackz/agent-shell-notifications]]
 - [[https://github.com/nineluj/agent-review][nineluj/agent-review]]
-
-エージェントごとに追加でソフトウェアのインストールが必要
-
-- codex
-  - npm i -g @openai/codex
-  - npm i -g @zed-industries/codex-acp
-- Claude Code
-  - [[https://code.claude.com/docs/en/overview][Claude Agent]] or npm install -g @anthropic-ai/claude-code
-  - npm install -g @agentclientprotocol/claude-agent-acp
-- GitHub Copilot
-  - copilot cli
 
 #+begin_src emacs-lisp
 (use-package agent-shell
