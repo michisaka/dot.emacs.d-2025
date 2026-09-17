@@ -372,7 +372,7 @@ nerd-icons のインストールが必要。M-x nerd-icons-install-fonts でイ�
   (minions-mode +1)
 
   :custom
-  (minions-prominent-modes '(flymake-mode)))
+  (minions-prominent-modes '(flymake-mode copilot-mode)))
 #+end_src
 
 
@@ -1680,6 +1680,76 @@ ln -s ~/.asdf/installs/nodejs/22.14.0/bin/prettier ~/bin
 #+end_src
 
 
+** GitHub copilot
+[[id:74411c17-874d-45ed-a0a5-135411b9c677][Emacs with GitHub Copilot]]
+
+利用前に M-x copilot-login を実行する。
+
+設定項目として =copilot-network-proxy= が存在するがHTTP_PROXYは尊重されている模様。
+
+プロジェクトごとにどの +言語+ モードに対してCopilotを有効・無効にするかを制御する必要があるため =copilot-mode= を =prog-mode= にフックはしない。
+=.dir-locals.el= に以下を記載してモードごとに有効にする。
+
+#+begin_src emacs-lisp :tangle no
+((python-ts-mode
+  . ((eval . (copilot-mode 1))))
+ (python-mode
+  . ((eval . (copilot-mode 1))))
+ (typescript-ts-mode
+  . ((eval . (copilot-mode 1))))
+ (typescript-mode
+  . ((eval . (copilot-mode 1)))))
+#+end_src
+
+#+begin_src emacs-lisp
+(use-package copilot
+  :straight t
+
+  :init
+  (defun my/git-tracked-file-p (file)
+    "Return non-nil if FILE is tracked in Git."
+    (let ((default-directory (locate-dominating-file file ".git")))
+      (and default-directory
+        (eq 0
+          (call-process "git" nil nil nil
+            "ls-files" "--error-unmatch" "--" file)))))
+
+  (defun my/git-ignored-file-p (file)
+    "Return non-nil if FILE is ignored in Git."
+    (let ((default-directory (locate-dominating-file file ".git")))
+      (and default-directory
+        (eq 0
+          (call-process "git" nil nil nil
+            "check-ignore" "-q" "--" file)))))
+
+  (defun my/copilot-disabled-p ()
+    (and buffer-file-name
+      ;; (my/git-tracked-file-p buffer-file-name)
+      (my/git-ignored-file-p buffer-file-name)))
+
+  :commands
+  (copilot-mode copilot-login)
+
+  :custom
+  (copilot-disable-predicates
+   `(my/copilot-disabled-p))
+  (copilot-lsp-settings  '(:telemetry (:telemetryLevel "off")))
+
+  :bind
+  (:map copilot-completion-map
+        ; tab は corfu で利用しているので、別のキーへ逃がす
+        ;; ("M-<tab>" . copilot-accept-completion)
+        ;; ("C-<tab>" . copilot-accept-completion)
+        ;; ("C-<return>" . copilot-accept-completion)
+        ("M-<return>" . copilot-accept-completion)
+        ("C-M-<return>" . copilot-accept-completion-by-line)
+        ("C-c C-<return>" . copilot-accept-completion-by-word)
+        ("C-c C-]" . copilot-next-completion)
+        ("C-c C-[" . copilot-previous-completion))
+  ;; :hook
+  ;; (prog-mode-hook . copilot-mode) ; 上述の通り prog-mode に copilot-mode はフックしない
+)
+#+end_src
 
 ** python
 
