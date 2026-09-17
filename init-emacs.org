@@ -1238,6 +1238,7 @@ APIキーはデフォルトでauthinfoから読み込まれる。machine が api
   :custom
   (gptel-default-mode 'org-mode)
   (gptel-model 'gpt-5.4-mini)   ; nil だと適切なものにフォールバックするけど、警告が出る
+  (gptel-include-reasoning "*gptel reasoning buffer*") ; reasoning の内容を別バッファに表示する
   ;; (gptel-org-branching-context t)       ; gptel-org-set-topic で指定したほうが便利そう
   ;; (gptel-highlight-methods '(fringe face))
 
