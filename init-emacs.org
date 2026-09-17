@@ -156,7 +156,8 @@ use-package には機能名(require, provide の引数)を指定する。一方�
 
 - :init :: パッケージのロードを行いその直後に実行する処理
 
-- :custom, :custom-face :: :configの箇所に setq, set-set-faces を追加する
+- :custom, :custom-face :: custom-theme-set-variables, face-defface-spec を設定する
+  - custome-face の設定内容の優先度は低いので、:config で custom-set-faces を使うようにする
 
 - :bind :: 指定されたコマンドを autoload に登録し、キーバインドを作成する(キーバインドの作成は :init のタイミングと同じ)
   - キーとコマンドのconsかそのリストを指定する
@@ -375,15 +376,12 @@ yes-or-no-p を (x-popup-dialog t '(prompt ("Yes". t) ("No". nil))) に置き換
   (solarized-use-variable-pitch nil)
   ;; (solarized-high-contrast-mode-line t)
   (solarized-scale-org-headlines nil)
-  :custom-face
-  (outline-1 ((t (:foreground "SkyBlue3"))))
-  (org-level-1 ((t (:foreground "SkyBlue3")))) ;org-level-1 は outline-1を継承しているっぽいんだけど、outline-1だけでは変わらなかった。
-  (tab-bar-tab ((t (:background "#073642"))))
-  (tab-bar-tab-inactive ((t (:foreground "#586e75" :background "#002b36"))))
 
   :config
-  (load-theme 'solarized-dark t))
-  ;; (load-theme 'solarized-light t))
+  (load-theme 'solarized-dark t)
+  (custom-set-faces '(outline-1 ((t (:foreground "SkyBlue3")))))
+  (custom-set-faces '(org-level-1 ((t (:foreground "SkyBlue3")))))  ;org-level-1 は outline-1を継承しているっぽいんだけど、outline-1だけでは変わらなかった。
+  )
 
 ;; マイナーモードの表示をモードラインから消す
 (use-package minions
@@ -468,17 +466,18 @@ indent-tabs-mode の時にこそ indentation を当ててほしいんだけど�
      ;; (space-mark   ?　    [?□]          [?＿]) ; full-width space - square
      (newline-mark ?\n    [?\xAB ?\n] [?$ ?\n])        ; eol - right quote mark
      (tab-mark     ?\t    [?\u00BB ?\t] [?\\ ?\t]))) ; tab - left quote mark
-  :custom-face
-  (whitespace-trailing ((t (:background "DarkRed"))))
-  (whitespace-empty ((t (:foreground "DarkSlateGrey"))))
-  (whitespace-hspace ((t (:foreground "red" :background "DarkRed" :underline t))))
-  (whitespace-newline ((t :foreground "gray30")))
-  (whitespace-tab  ((t (:underline (:style wave)))))
 
   :bind
   ("<f6> w" . whitespace-mode)
   :hook
-  ((conf-mode-hook prog-mode-hook text-mode-hook) . whitespace-mode))
+  ((conf-mode-hook prog-mode-hook text-mode-hook) . whitespace-mode)
+
+  :config
+  (custom-set-faces '(whitespace-trailing ((t (:background "DarkRed")))))
+  (custom-set-faces '(whitespace-empty ((t (:foreground "DarkSlateGrey")))))
+  (custom-set-faces '(whitespace-hspace ((t (:foreground "red" :background "DarkRed" :underline t)))))
+  (custom-set-faces '(whitespace-newline ((t :foreground "gray30"))))
+  (custom-set-faces '(whitespace-tab  ((t (:underline (:style wave)))))))
 #+end_src
 
 
@@ -687,7 +686,9 @@ Wanderlust でメールの印刷ができなかった。Subject:に日本語が�
 
   :config
   (tab-bar-mode)
-  (tab-bar-history-mode))
+  (tab-bar-history-mode)
+  (custom-set-faces '(tab-bar-tab ((t (:background "#073642")))))
+  (custom-set-faces '(tab-bar-tab-inactive ((t (:foreground "#586e75" :background "#002b36"))))))
 
 (use-package project-tab-groups
   :straight t
@@ -710,8 +711,6 @@ C-x o の後に ? の押下でサブコマンドコマンドのヒントが表�
   :custom
   (aw-scope 'frame)
   (aw-dispatch-always t) ; ウィンドウが2つでも作動する
-  :custom-face
-  (aw-leading-char-face ((t (:inherit ace-jump-face-foreground :height 3.0))))
 
   :bind
   ("C-x o" . ace-window)
@@ -719,7 +718,8 @@ C-x o の後に ? の押下でサブコマンドコマンドのヒントが表�
   ((prog-mode-hook text-mode-hook) . ace-window-posframe-mode)
 
   :config
-  (ace-window-display-mode t))
+  (ace-window-display-mode t)
+  (custom-set-faces '(aw-leading-char-face ((t (:inherit ace-jump-face-foreground :height 3.0))))))
 #+end_src
 
 ** tempbuf
