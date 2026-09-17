@@ -208,7 +208,8 @@ infoディレクトリ配下にinfoファイルを追加した場合、install-i
                               (cons ".*"  (locate-user-emacs-file "backup"))
                               (cons tramp-file-name-regexp nil)))
 (setq auto-save-file-name-transforms (list (list ".*" (locate-user-emacs-file "backup/") t)))
-(add-to-list 'Info-directory-list (locate-user-emacs-file "info"))
+(with-eval-after-load 'info
+  (add-to-list 'Info-additional-directory-list (locate-user-emacs-file "info")))
 
 ;; ファイル
 (setq load-prefer-newer t)          ;バイトコンパイルが古い場合元のファイルを読む
