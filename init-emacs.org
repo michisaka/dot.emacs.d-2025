@@ -1337,6 +1337,9 @@ https://yusukebe.com/posts/2021/gh-markdown-preview/
   :straight t
 
   :mode "\\.nix\\'")
+
+(use-package yaml-ts-mode
+  :mode "\\.ya?ml\\'")
 #+end_src
 
 ** 野鳥
