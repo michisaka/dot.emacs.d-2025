@@ -2386,22 +2386,26 @@ lookup は http://green.ribbon.to/~ikazuhiro/lookup/lookup.html のものをダ�
 M-x ispell or M-$ (ispell-word) でaspellを使用したスペルチェックはできる。リージョンを対象に実行もできる。
 リアルタイムで実行する flyspellもある。
 
-go-translate は リージョンに対して起動して、候補バッファ内で編集を行っても元のリージョンの内容に対して翻訳を行おうとするように見える。要確認。
+ミニバッファのプロンプトでは翻訳対象を書き直すことも可能。C-n, C-p で翻訳方向を切り替えることもできる。(可能な場合のみ)
+翻訳結果はバッファでは対訳で表示されるが、キルリングには訳文のみが保存されている。
 
 #+begin_src emacs-lisp
-(use-package go-translate
+(use-package gt
   :straight t
 
-  :custom
-  (gt-preset-translators `((google . ,(gt-translator
-                                       :taker (gt-taker :langs '(ja en) :prompt 'buffer)
-                                       :engines (list (gt-google-engine :parse (gt-google-parser))
-                                                      (gt-google-engine :parse (gt-google-summary-parser)))
-                                       :render (list ;(gt-posframe-pop-render :if 'word)
-                                                     (gt-buffer-render :then (gt-kill-ring-render)))))))
-
   :bind
-  ("C-c t" . gt-do-translate))
+  ("C-c t" . gt-translate)
+
+  :config
+  (setq gt-preset-translators `((google . ,(gt-translator
+                                            :taker (gt-taker
+                                                    :text 'paragraph
+                                                    :langs '(ja en)
+                                                    :prompt t
+                                                    ;; :prompt 'buffer ;バッファの場合プロンプトでの文字列の変更が反映されない
+                                                    :pick 'sentence)
+                                            :engines (list (gt-google-engine :parse (gt-google-parser)))
+                                            :render (gt-buffer-render :then (gt-kill-ring-render)))))))
 #+end_src
 
 ** Atomic chrome
