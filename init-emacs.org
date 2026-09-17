@@ -2037,6 +2037,8 @@ magit の diff にコマンドを足すものの、magitの差分表示で使う
 ** Org Mode
 
 *** ブックマークレット
+[[https://orgmode.org/manual/Protocols.html][Protocols (The Org Manual)]]
+
 以下のコードをブックマークレットとして登録。org-roamと共用。
 ブックマークレットの生成は [[https://caiorss.github.io/bookmarklet-maker/][Bookmarklet Maker]] を利用。
 
@@ -2089,7 +2091,7 @@ if (protocol === "capture") {
 
 - store-link
 #+begin_src js
-location.href='org-protocol://store-link?%27 + new URLSearchParams({url:location.href, title:document.title});
+location.href='org-protocol://store-link?' + new URLSearchParams({url:location.href, title:document.title});
 #+end_src
 
 *** org-mode
