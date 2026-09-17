@@ -65,8 +65,10 @@
 以下の内容を init.el に記述して、残りの init.el 相当の内容をinit-emacs.org(このファイル)に書いて起動時にinit.elから読み込ませる。
 (元ファイル名の .el ファイルを作成するので、このファイルのファイル名を init.org とすると循環してエラーになる)
 
-起動に失敗すると straight-use-package のビルドが完了したことにならないようで、毎回 build orgが走ってしまう。
-一旦(require 'org)まで済ませてしまったほうが良い。
+~起動に失敗すると straight-use-package のビルドが完了したことにならないようで、毎回 build orgが走ってしまう。~
+~一旦(require 'org)まで済ませてしまったほうが良い。~
+
+org-mode はビルトインのものを利用するように変更した。
 
 :tangle no を指定しているのでこのコードブロックはエクスポートされない。
 #+begin_src emacs-lisp :tangle no
@@ -86,7 +88,7 @@
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
 
-(straight-use-package 'org)
+(straight-use-package '(org :type built-in))
 (require 'org)
 
 (org-babel-load-file (locate-user-emacs-file "init-emacs.org"))
@@ -168,9 +170,9 @@ use-package には機能名(require, provide の引数)を指定する。一方�
 
 - :config :: パッケージのロード後に行われる。 :config に use-packageをネストさせるのは止める
 
+use-package はビルトインのものを使うようにした。((straight-use-package 'use-package) を削除)
+
 #+begin_src emacs-lisp
-(straight-use-package 'use-package)
-(require 'use-package)
 (setq use-package-hook-name-suffix nil)
 #+end_src
 
@@ -2100,7 +2102,7 @@ org-link-completion により、 [[ でリンク関係の補完が効くよう�
 
 #+begin_src emacs-lisp
 (use-package org
-  :straight t
+  ;; :straight t
 
   :preface
   (defun my/org-agenda-skip-not-ready ()

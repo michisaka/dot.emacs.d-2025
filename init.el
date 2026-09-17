@@ -14,7 +14,7 @@
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
 
-(straight-use-package 'org)
+(straight-use-package '(org :type built-in))
 (require 'org)
 
 (org-babel-load-file (locate-user-emacs-file "init-emacs.org"))
