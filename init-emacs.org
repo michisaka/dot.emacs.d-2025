@@ -1500,6 +1500,9 @@ git-gutter-fringe の repeat-map はまだちゃんと動いていない。
 
   :config
   (global-git-gutter-mode t))
+
+(use-package consult-ghq
+  :straight (consult-ghq :type git :host github :repo "tomoya/consult-ghq"))
 #+end_src
 
 ** eglot
