@@ -1366,20 +1366,20 @@ YaTeX 1.84 で修正された模様。2025-03-09 時点で master は 1.83相当
   :mode
   ("\\.tex\\'" . yatex-mode)
 
-  :custom
-  (YaTeX-inhibit-prefix-letter t)
-  (tex-command "lualatex -synctex=1")
-  (YaTeX-kanji-code nil)
-  (YaTeX-latex-message-code 'utf-8)
-  (dvi2-command "zathura -P 1 -x \"emacsclient --no-wait +%{line} %{input}\"")
-  (tex-pdfview-command "zathura -P 1 -x \"emacsclient --no-wait +%{line} %{input}\"")
-  (dviprint-command-format "pdftops %t %s -level3 %f - | lpr")
-  (dviprint-from-format "-f %b")
-  (dviprint-to-format "-l %e")
-  (YaTeX-user-completion-table (locate-user-emacs-file "yatex/yatexrc"))
-  ;; (YaTeX-template-file (locate-user-emacs-file "yatex/templates/LaTeX-template.tex"))
-  (YaTeX-singlecmd-suffix "{}")
-  (YaTeX-fill-column 119))
+  :config
+  (setq YaTeX-inhibit-prefix-letter t)
+  (setq tex-command "lualatex -synctex=1 -shell-escape")
+  (setq YaTeX-kanji-code nil)
+  (setq YaTeX-latex-message-code 'utf-8)
+  (setq dvi2-command "zathura -P 1 -x \"emacsclient --no-wait +%{line} %{input}\"")
+  (setq tex-pdfview-command "zathura -P 1 -x \"emacsclient --no-wait +%{line} %{input}\"")
+  (setq dviprint-command-format "pdftops %t %s -level3 %f - | lpr")
+  (setq dviprint-from-format "-f %b")
+  (setq dviprint-to-format "-l %e")
+  (setq YaTeX-user-completion-table (locate-user-emacs-file "yatex/yatexrc"))
+  ;; (setq YaTeX-template-file (locate-user-emacs-file "yatex/templates/LaTeX-template.tex"))
+  (setq YaTeX-singlecmd-suffix "{}")
+  (setq YaTeX-fill-column 119))
 
   ;; :config
   ;;  (add-hook 'yatex-mode-hook '(lambda () (font-lock-mode))))
