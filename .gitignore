@@ -2,6 +2,7 @@
 /.emacs.desktop*
 /.lookup-cache-*.el
 /.org-id-locations
+/agent
 /auto-save-list/
 /backup/
 !/backup/.gitkeep
@@ -17,7 +18,7 @@
 /info/*
 !/info/.gitkeep
 /init-emacs.el
-/my-data/init-*.el
+/my-data
 /org-roam.db
 /persist/activities-activities
 /places
@@ -25,6 +26,6 @@
 /recentf
 /straight/
 /tramp
-/transient/history
+/transient/history.el
 /tree-sitter/
 /url/cookies
