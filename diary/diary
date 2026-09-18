@@ -4,5 +4,5 @@
 ;; #include "diary.japan_holidays"
 
 %%(org-diary :scheduled :timestamp :deadline)
-%%(diary-sunrise-sunset)
-%%(diary-lunar-phases)
+;; %%(diary-sunrise-sunset)
+;; %%(diary-lunar-phases)

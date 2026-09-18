@@ -2760,7 +2760,7 @@ my-dataディレクトリにある init-ホスト名.el をロードする。基
 (org-agenda-to-appt)
 (appt-activate 1)
 
-(use-package diary-lib
-  :hook
-  (emacs-startup-hook . diary))
+;; (use-package diary-lib
+;;   :hook
+;;   (emacs-startup-hook . diary))
 #+end_src
