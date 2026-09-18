@@ -740,6 +740,7 @@ https://www.emacswiki.org/emacs/tempbuf.el
   ;; (special-mode-hook . turn-on-tempbuf-mode)
   ;; (embark-collect-mode-hook . turn-on-tempbuf-mode)
   ;; (grep-mode-hook . turn-on-tempbuf-mode)
+  (emacs-lisp-compilation-mode . turn-on-tempbuf-mode)
   (diary-mode-hook . turn-on-tempbuf-mode)
   (diary-fancy-display-mode-hook . turn-on-tempbuf-mode)
   (dired-mode-hook . turn-on-tempbuf-mode))
