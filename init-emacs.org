@@ -1801,6 +1801,9 @@ ln -s ~/.asdf/installs/nodejs/22.14.0/bin/prettier ~/bin
   ;; (agent-shell-text-file-capabilities t)               ; エージェントが読み書き可能なテキストファイル機能で初期化されるか否か
   (agent-shell-prefer-viewport-interaction t)             ; 非 nil の場合、‘agent-shell’ はシェル操作よりビューポート操作を優先する
 
+;  (agent-shell-prefer-session-resume nil)
+  (agent-shell-session-restore-verbosity 'full)           ; 再開したセッションの会話履歴を agent-shell のバッファに復元する
+
   ;; エージェントごとの設定 は ホスト固有の設定ファイルで行う
 
   :bind
