@@ -2103,6 +2103,27 @@ org-download は 画像のURLをコピーして org-download-yank で画像を�
 org-link-completion により、 [[ でリンク関係の補完が効くようになる。([ では効かない)
 ただ、agenda ファイルの見出しへのリンクなら直接ファイルをvisitして C-c o s(org-store-link) したほうが早いかもしれない。
 
+*計時 (org-clock)*
+| org-resolve-clocks | C-c C-x z   | 未完了の計時を完了する                  |
+| org-clock-cancel   | C-c C-x C-q | 記録自体を取り消す                      |
+| org-clock-in-last  | C-c C-x C-x | 直前に計時していたタスクへ再度 clock-in |
+| org-clock-goto     | C-c C-x C-j | 現在計時中の見出しへジャンプ            |
+
+k — idle 時間の全部または一部を作業時間として残し、そのまま clock 継続
+K — 同様だが、その時点で clock-out
+t - k の類似 時間ではなく時刻を指定する
+g - 指定した時間前から作業を再開していた
+s — idle 時間を全部差し引き、戻ってきた時刻から clock を再開
+S — 席を離れた時点で clock-out したことにする
+C — その clock 自体をキャンセル
+
+| 状況                                   | 選択      |
+|----------------------------------------+-----------|
+| 「19:00まで仕事していた」              | t → 19:00 |
+| 「idleになってから20分は仕事していた」 | k → 20    |
+| 「15分前には席に戻っていた」           | g → 15    |
+| 「席を離れた時点で仕事は終わっていた」 | S         |
+
 #+begin_src emacs-lisp
 (use-package org
   ;; :straight t
@@ -2164,6 +2185,10 @@ org-link-completion により、 [[ でリンク関係の補完が効くよう�
   (org-clock-out-remove-zero-time-clocks t) ;一分未満を計時しない
   (org-clock-clocked-in-display 'frame-title) ;計時の内容をフレームタイトルに表示する
   (org-clock-mode-line-total 'current)      ;org-clock-clocked-in-displayで表示される時間を(累積でなく)現在の計測分に限る
+
+  (org-clock-idle-time 15)                  ; idel 分経過した際に途中時間の扱いを確認する
+  (org-clock-persist 'history)              ; 計時項目を永続化する
+
   (org-log-done 'time)                      ;DONEに遷移したとき時刻を記録する
   (org-agenda-include-diary t)              ;アジェンダにdiaryの内容を含める
   (org-agenda-start-on-weekday 1)           ;週のアジェンダを月曜始まりにする
@@ -2221,6 +2246,8 @@ org-link-completion により、 [[ でリンク関係の補完が効くよう�
        ((org-agenda-overriding-header "Ready scheduled tasks")
         (org-agenda-skip-function
          #'my/org-agenda-skip-not-ready)))))
+
+  (org-clock-persistence-insinuate)
 
   (require 'org-habit)
   (require 'ox-beamer))
