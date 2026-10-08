@@ -1213,7 +1213,9 @@ major-mode-remap-alist は呼び出しを奪うだけなので、フックとか
 
 ** gptel
 APIキーはデフォルトでauthinfoから読み込まれる。machine が api.openai.com で、 login が apikey のものが参照される。
-他のLLMバックエンドの設定はホスト個別の設定で行う。
+ChatGTPのサブスクリプションでの利用が可能になった。APIキーは OpenAI のものでこちらは従量課金なので注意。
+
+バックエンドの設定はホスト個別の設定で行う。
 
 - コンテキストの指定
   - gptelはデフォルトでバッファ先頭からカーソル位置までがコンテキストに含まれる
@@ -1254,7 +1256,6 @@ APIキーはデフォルトでauthinfoから読み込まれる。machine が api
 
   :custom
   (gptel-default-mode 'org-mode)
-  (gptel-model 'gpt-5.4-mini)   ; nil だと適切なものにフォールバックするけど、警告が出る
   (gptel-include-reasoning "*gptel reasoning buffer*") ; reasoning の内容を別バッファに表示する
   ;; (gptel-org-branching-context t)       ; gptel-org-set-topic で指定したほうが便利そう
   ;; (gptel-highlight-methods '(fringe face))
