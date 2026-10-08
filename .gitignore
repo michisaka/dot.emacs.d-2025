@@ -15,10 +15,12 @@
 /eshell/history
 /eln-cache/
 /history
+/image-dired
 /info/*
 !/info/.gitkeep
 /init-emacs.el
 /my-data
+/org-clock-save.el
 /org-roam.db
 /persist/activities-activities
 /places
